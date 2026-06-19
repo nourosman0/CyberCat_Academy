@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Secure Sprinter Arcade — Cyber Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --cyan:#00f5ff;--purple:#9b5de5;--pink:#ff2d78;
+  --yellow:#ffe600;--green:#00ff9d;--red:#ff1a1a;
+  --gold:#ffd700;--bg:#03050f;--orange:#ff6600;--amber:#c8922a;
+}
+
+/* ── NEBULA BACKGROUND ── */
+body{
+  background: var(--bg);
+  font-family:'Share Tech Mono',monospace;
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:crosshair;
+  position: relative;
+}
+
+/* Deep space nebula layers */
+body::before{
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 90% 60% at 10% 15%, rgba(100,0,200,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 88% 80%, rgba(0,50,200,0.13) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 45% at 55% 45%, rgba(0,100,160,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 50% at 75% 8%,  rgba(160,0,90,0.10) 0%, transparent 48%),
+    radial-gradient(ellipse 45% 35% at 25% 88%, rgba(0,160,180,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 50% 95%, rgba(80,0,140,0.09) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+  animation: nebulaBreath 25s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaBreath {
+  0%   { opacity: 0.80; }
+  50%  { opacity: 1.0; }
+  100% { opacity: 0.85; }
+}
+
+/* Star field */
+body::after{
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(1px 1px at 8%  12%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px 1px at 23% 35%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 41% 6%,  rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 28%, rgba(200,220,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px 1px at 76% 14%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 89% 52%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(1px 1px at 4%  70%, rgba(200,230,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 53% 85%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 33% 93%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 78%, rgba(200,200,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 17% 55%, rgba(255,255,255,0.32) 0%, transparent 100%),
+    radial-gradient(1px 1px at 46% 60%, rgba(255,255,255,0.38) 0%, transparent 100%),
+    radial-gradient(2px 2px at 70% 42%, rgba(180,200,255,0.28) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 25%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 6%  88%, rgba(255,255,255,0.38) 0%, transparent 100%),
+    radial-gradient(1px 1px at 38% 48%, rgba(255,255,255,0.25) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 58% 72%, rgba(180,220,255,0.30) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 30%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 84% 60%, rgba(255,255,255,0.28) 0%, transparent 100%),
+    radial-gradient(2px 2px at 48% 22%, rgba(200,230,255,0.35) 0%, transparent 100%);
+  pointer-events:none; z-index:0;
+  animation: starTwinkle 12s ease-in-out infinite alternate;
+}
+
+@keyframes starTwinkle {
+  0%   { opacity: 0.65; }
+  40%  { opacity: 1.0; }
+  100% { opacity: 0.75; }
+}
+
+/* ════════════════════════════════════
+   LOGIN / REGISTER OVERLAY
+════════════════════════════════════ */
+#authScreen{
+  position:fixed;inset:0;z-index:9000;
+  background: transparent;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* Dark overlay behind card */
+#authScreen::before {
+  content:'';
+  position:fixed; inset:0;
+  background: rgba(3,5,15,0.6);
+  backdrop-filter: blur(2px);
+  z-index:-1;
+}
+
+.auth-card{
+  width:860px;max-width:96vw;
+  display:flex;
+  border:1px solid rgba(0,245,255,.22);
+  background:rgba(5,8,22,.97);
+  box-shadow:0 0 100px rgba(0,245,255,.08), 0 0 200px rgba(100,0,200,.06);
+  position:relative;overflow:hidden;
+}
+.auth-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(45deg,var(--cyan),var(--purple),var(--pink),var(--cyan));
+  background-size:300% 300%;
+  animation:borderAnim 4s linear infinite;
+  z-index:-1;
+}
+@keyframes borderAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+.auth-brand{
+  width:300px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:44px 32px;
+  background:linear-gradient(160deg,rgba(0,245,255,.05),rgba(155,93,229,.09));
+  border-right:1px solid rgba(0,245,255,.12);
+  position:relative;overflow:hidden;
+}
+.auth-brand::after{
+  content:'';position:absolute;
+  width:340px;height:340px;
+  background:radial-gradient(circle,rgba(0,245,255,.07) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:brandPulse 3s ease-in-out infinite;
+}
+@keyframes brandPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.5}50%{transform:translate(-50%,-50%) scale(1.2);opacity:1}}
+.brand-logo{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--cyan);text-shadow:0 0 18px var(--cyan);letter-spacing:2px;text-align:center;position:relative;z-index:1;}
+.brand-logo span{color:var(--purple);}
+.brand-sub{font-size:8px;color:rgba(0,245,255,.35);letter-spacing:4px;text-align:center;margin-top:6px;position:relative;z-index:1;}
+.brand-cat{font-size:68px;position:relative;z-index:1;margin:22px 0;animation:catFloat 2.4s ease-in-out infinite;filter:drop-shadow(0 0 18px rgba(0,245,255,.38));}
+@keyframes catFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.brand-tag{font-size:8px;color:rgba(0,245,255,.25);text-align:center;max-width:200px;line-height:2;position:relative;z-index:1;}
+
+.auth-form{flex:1;padding:48px 40px;display:flex;flex-direction:column;justify-content:center;}
+.auth-tabs{display:flex;gap:0;margin-bottom:30px;border-bottom:1px solid rgba(0,245,255,.14);}
+.auth-tab{
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  padding:9px 22px;background:transparent;border:none;
+  color:rgba(255,255,255,.28);cursor:pointer;position:relative;transition:color .25s;
+}
+.auth-tab.active{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.auth-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.auth-panel{display:none;}.auth-panel.active{display:block;}
+.form-grp{margin-bottom:17px;}
+.form-lbl{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,245,255,.6);display:block;margin-bottom:7px;text-transform:uppercase;}
+.form-inp{
+  width:100%;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.18);
+  color:#fff;padding:11px 14px;
+  font-family:'Share Tech Mono',monospace;font-size:13px;
+  outline:none;transition:all .25s;
+}
+.form-inp:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,245,255,.2);background:rgba(0,245,255,.07);}
+.form-inp::placeholder{color:rgba(255,255,255,.16);}
+.btn-auth{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,rgba(0,245,255,.13),rgba(155,93,229,.13));
+  border:1px solid var(--cyan);color:var(--cyan);
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:3px;
+  cursor:pointer;text-transform:uppercase;transition:all .25s;position:relative;overflow:hidden;
+}
+.btn-auth::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--cyan),var(--purple));opacity:0;transition:opacity .25s;}
+.btn-auth:hover{box-shadow:0 0 28px rgba(0,245,255,.45);color:#000;}
+.btn-auth:hover::before{opacity:1;}
+.btn-auth span{position:relative;z-index:1;}
+.auth-err{color:var(--pink);font-size:10px;margin-top:10px;letter-spacing:1px;min-height:16px;}
+
+/* ════════════════════════════════════
+   TOPBAR
+════════════════════════════════════ */
+.topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;height:50px;
+  border-bottom:1px solid rgba(0,245,255,.10);
+  background:rgba(3,5,15,.92);backdrop-filter:blur(12px);
+}
+.topbar-logo{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--cyan);text-shadow:0 0 14px var(--cyan);letter-spacing:2px;}
+.topbar-logo span{color:var(--purple);}
+
+.topbar-nav{display:flex;gap:0;}
+.nav-btn{
+  position:relative;height:50px;padding:0 22px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  color:rgba(0,245,255,.38);
+  background:transparent;border:none;cursor:pointer;
+  transition:color .2s;
+}
+.nav-btn:hover{color:rgba(0,245,255,.75);}
+.nav-btn.active{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.nav-btn::after{
+  content:'';
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--cyan);box-shadow:0 0 8px var(--cyan);
+  transform:scaleX(0);transition:transform .22s;
+}
+.nav-btn.active::after{transform:scaleX(1);}
+
+.topbar-right{display:flex;gap:14px;align-items:center;font-size:9px;color:rgba(0,245,255,.4);}
+.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;margin-right:5px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#statusLabel{transition:color .5s;}
+#agentLabel{color:rgba(0,245,255,.55);font-size:9px;letter-spacing:1px;}
+.btn-logout{
+  padding:4px 12px;background:transparent;
+  border:1px solid rgba(255,80,80,.3);color:rgba(255,100,100,.55);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;
+  cursor:pointer;transition:.2s;
+}
+.btn-logout:hover{border-color:var(--red);color:var(--red);box-shadow:0 0 8px rgba(255,26,26,.25);}
+
+/* ════════════════════════════════════
+   CONGRATS BANNER
+════════════════════════════════════ */
+#congrats-banner{display:none;position:relative;z-index:10;background:linear-gradient(135deg,rgba(0,245,255,.07),rgba(155,93,229,.09));border-bottom:1px solid rgba(0,245,255,.22);padding:9px 32px;text-align:center;animation:bannerGlow 3s ease-in-out infinite;}
+@keyframes bannerGlow{0%,100%{box-shadow:none}50%{box-shadow:0 2px 20px rgba(0,245,255,.12)}}
+.cb-text{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--cyan);text-shadow:0 0 10px var(--cyan);letter-spacing:2px;}
+.cb-link{display:inline-block;margin-left:14px;padding:3px 12px;background:rgba(0,245,255,.1);border:1px solid var(--cyan);font-family:'Press Start 2P',monospace;font-size:6px;color:var(--cyan);cursor:pointer;transition:.2s;}
+.cb-link:hover{background:var(--cyan);color:#000;}
+
+/* ════════════════════════════════════
+   SECTION SWITCHER
+════════════════════════════════════ */
+.section{display:none;}
+.section.active{display:block;}
+
+/* ════════════════════════════════════
+   MISSIONS SECTION — ZIGZAG LAYOUT
+════════════════════════════════════ */
+.scene{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:34px 20px 160px;}
+.hub-title{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--cyan);text-shadow:0 0 20px var(--cyan),0 0 50px rgba(0,245,255,.25);letter-spacing:3px;text-align:center;margin-bottom:6px;}
+.hub-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(0,245,255,.35);letter-spacing:5px;text-align:center;margin-bottom:40px;}
+
+.world{position:relative;width:1280px;max-width:100%;}
+
+
+/* Building 1 — MAGENTA/PINK arcade palace */
+:root{
+  --b1-primary:#ff2d78;--b1-secondary:#ff6eb4;--b1-glow:rgba(255,45,120,0.5);
+  --b1-dark:#1a0010;--b1-mid:#2d0020;
+  /* Building 2 stays cyan (already defined) */
+  /* Building 3 — VIOLET/INDIGO cipher vault */
+  --b3-primary:#7c3aed;--b3-secondary:#a78bfa;--b3-glow:rgba(124,58,237,0.5);
+  --b3-dark:#0d0820;--b3-mid:#160f30;
+}
+
+.zigzag-grid{
+  position:relative;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  grid-template-rows:auto auto;
+  column-gap:18px;
+  row-gap:0;
+}
+
+/* Top-row buildings (B1, B3, B5): row 1, bottom-aligned */
+.bwrap.top{
+  grid-row:1;
+  align-self:end;
+}
+/* Bottom-row buildings (B2, B4): row 2, top of their row */
+.bwrap.bot{
+  grid-row:2;
+  align-self:start;
+  margin-top:0;
+}
+
+.bwrap.b1{grid-column:1;}
+.bwrap.b2{grid-column:2;}
+.bwrap.b3{grid-column:3;}
+.bwrap.b4{grid-column:4;}
+.bwrap.b5{grid-column:5;}
+
+.ground-line{width:100%;height:3px;background:linear-gradient(90deg,transparent,rgba(0,245,255,.35),rgba(155,93,229,.35),rgba(0,245,255,.35),transparent);margin-top:12px;box-shadow:0 0 10px rgba(0,245,255,.2);}
+
+.bwrap{position:relative;display:flex;flex-direction:column;align-items:center;z-index:2;}
+.bwrap.unlocked{cursor:pointer;}
+.bwrap.unlocked .bshell:hover{filter:brightness(1.12) drop-shadow(0 0 28px rgba(0,245,255,.55));transform:translateY(-6px);}
+.bwrap.locked{cursor:not-allowed;}
+.bshell{transition:transform .25s,filter .25s;}
+.blabel{margin-top:10px;font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:2px;color:rgba(0,245,255,.4);text-align:center;}
+.blabel.on{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.blabel.on-pink{color:var(--pink);text-shadow:0 0 8px var(--pink);}
+.blabel.on-purple{color:var(--purple);text-shadow:0 0 8px var(--purple);}
+.blabel.on-green{color:var(--green);text-shadow:0 0 8px var(--green);}
+.blabel.on-orange{color:var(--orange);text-shadow:0 0 8px var(--orange);}
+.tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(4,8,20,.97);border:1px solid rgba(0,245,255,.3);padding:6px 12px;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--cyan);white-space:nowrap;pointer-events:none;opacity:0;transition:.2s;z-index:20;}
+.bwrap:hover .tip{opacity:1;}
+.b-spotlight{position:absolute;top:-110px;left:50%;transform:translateX(-50%);width:4px;height:110px;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);pointer-events:none;display:none;}
+.b-spotlight::before{content:'';position:absolute;top:0;left:-32px;width:68px;height:120px;background:linear-gradient(180deg,rgba(255,255,255,.09),transparent);clip-path:polygon(32px 0,36px 0,68px 100%,0 100%);}
+.spotlight-active .b-spotlight{display:block;}
+.b-badge{position:absolute;top:-14px;right:-10px;z-index:30;font-size:20px;animation:badgePop .5s ease-out;filter:drop-shadow(0 0 6px var(--gold));}
+@keyframes badgePop{from{transform:scale(0) rotate(-180deg)}to{transform:scale(1) rotate(0deg)}}
+.robots{display:flex;gap:5px;justify-content:center;margin-top:-2px;position:relative;z-index:6;}
+.rbot{display:inline-block;width:24px;height:24px;animation:robotBob 1.5s ease-in-out infinite;}
+.rbot:nth-child(2){animation-delay:.3s;margin-top:7px;}
+@keyframes robotBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* ── BUILDING 1 — MAGENTA/PINK ARCADE PALACE ── */
+.b1-shell{width:240px;position:relative;}
+.b1-tower{position:relative;width:230px;min-height:250px;background:linear-gradient(180deg,#200018,#0e0008);border:2px solid rgba(255,45,120,.45);box-shadow:0 0 40px rgba(255,45,120,.2),inset 0 0 50px rgba(80,0,40,.5);display:flex;flex-direction:column;}
+.b1-stripe{height:6px;background:linear-gradient(90deg,#ff2d78,#ff6eb4,#ff2d78,#e040fb,#ff2d78);animation:stripeShift 2s linear infinite;background-size:200%;}
+@keyframes stripeShift{0%{background-position:0%}100%{background-position:200%}}
+.b1-sign{margin:14px 14px 0;padding:10px 8px;background:#000;border:2px solid var(--b1-primary);box-shadow:0 0 22px var(--b1-glow);text-align:center;position:relative;}
+.b1-sign-text{font-family:'Press Start 2P',monospace;font-size:8px;line-height:2;background:linear-gradient(135deg,#ff2d78,#ff6eb4,#e040fb,#ff2d78);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:gradShift 2.5s linear infinite;}
+@keyframes gradShift{0%{background-position:0%}100%{background-position:200%}}
+.b1-cat{font-size:18px;display:block;text-align:center;margin:6px 0;animation:catBounce 2s ease-in-out infinite;filter:drop-shadow(0 0 6px rgba(255,45,120,.8));}
+@keyframes catBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.b1-sub{margin:8px 14px;padding:6px 10px;background:rgba(0,0,0,.82);border:1px solid rgba(255,45,120,.5);text-align:center;}
+.b1-sub-txt{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--b1-secondary);letter-spacing:1px;text-shadow:0 0 8px var(--b1-primary);}
+.b1-wins{display:flex;gap:7px;margin:10px 14px;}
+.b1-win{flex:1;height:24px;background:rgba(255,45,120,.06);border:1px solid rgba(255,45,120,.25);position:relative;overflow:hidden;}
+.b1-win::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,45,120,.15));}
+.b1-runner{position:absolute;bottom:0;left:0;font-size:14px;animation:runAcross 4s linear infinite;filter:drop-shadow(0 0 4px rgba(255,45,120,.9));}
+@keyframes runAcross{0%{left:-20px;opacity:0}5%{opacity:1}90%{opacity:1}100%{left:200px;opacity:0}}
+.b1-play{display:block;margin:auto 14px 14px;padding:9px 0;background:linear-gradient(135deg,var(--b1-primary),#88003a);font-family:'Press Start 2P',monospace;font-size:7px;color:#fff;text-align:center;text-decoration:none;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);box-shadow:0 0 26px var(--b1-glow);transition:all .2s;}
+.b1-play:hover{background:linear-gradient(135deg,#ff6eb4,var(--b1-primary));box-shadow:0 0 44px rgba(255,45,120,.9);}
+.b1-roof{display:flex;gap:4px;justify-content:center;align-items:flex-end;height:44px;margin-bottom:-1px;}
+.rtb{border-radius:2px;}
+.b1-base{width:230px;height:20px;margin:0 auto;background:linear-gradient(180deg,#300020,#180010);border:1px solid rgba(255,45,120,.25);border-top:2px solid rgba(255,45,120,.5);clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,18px 100%);}
+
+/* ── BUILDING 2 ── */
+.b2-shell{width:210px;position:relative;}
+.b2-tower-lk{position:relative;width:195px;margin:0 auto;background:linear-gradient(180deg,#060d18,#030810);border:2px solid rgba(0,229,255,.45);box-shadow:0 0 35px rgba(0,229,255,.18);}
+.b2-roof-lk{display:flex;gap:3px;justify-content:center;align-items:flex-end;height:32px;margin-bottom:-1px;}
+.b2-screen{margin:12px 12px 0;height:52px;background:#0d1117;border:2px solid rgba(0,229,255,.5);box-shadow:0 0 18px rgba(0,229,255,.3);display:flex;align-items:center;justify-content:center;}
+.b2-screen-txt{font-family:'Press Start 2P',monospace;font-size:6px;color:rgba(0,229,255,.8);text-shadow:0 0 10px #00e5ff;text-align:center;line-height:2;animation:denyFlick 3s infinite;}
+@keyframes denyFlick{0%,88%,100%{opacity:1}89%{opacity:.25}91%{opacity:1}93%{opacity:.15}95%{opacity:1}}
+.b2-vents{margin:8px 12px;display:flex;flex-direction:column;gap:4px;}
+.vent{height:6px;background:rgba(0,0,0,.6);border:1px solid rgba(0,229,255,.2);border-radius:1px;overflow:hidden;}
+.vent::after{content:'';display:block;height:100%;width:35%;background:rgba(0,229,255,.18);}
+.b2-door{width:46px;height:58px;margin:8px auto 0;background:linear-gradient(180deg,#0d2040,#071020);border:2px solid rgba(0,245,255,.3);border-bottom:none;display:flex;align-items:center;justify-content:center;}
+.b2-door-glow{width:46px;height:7px;margin:0 auto;background:var(--cyan);filter:blur(6px);opacity:.6;}
+.door-lock{font-size:18px;filter:drop-shadow(0 0 6px rgba(0,229,255,.9));animation:lockFloat 3s ease-in-out infinite;}
+@keyframes lockFloat{0%,100%{transform:scale(1)}50%{transform:scale(1.08) translateY(-2px)}}
+.b2-base-lk{width:214px;height:18px;background:linear-gradient(180deg,#061020,#030810);border:1px solid rgba(0,229,255,.25);border-top:2px solid rgba(0,229,255,.45);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,14px 100%);}
+.b2-tower-uk{position:relative;width:195px;margin:0 auto;background:linear-gradient(180deg,#0a0d12,#050608);border:2px solid rgba(0,229,255,.5);box-shadow:0 0 40px rgba(0,229,255,.25);}
+.b2-proto-row{display:flex;align-items:center;gap:3px;padding:2px 4px;font-family:'Share Tech Mono',monospace;font-size:7px;}
+.b2-proto-row:nth-child(odd){background:rgba(255,255,255,.03);}
+.pkt-tcp{color:#5ba3d9;}.pkt-rst{color:#e74c3c;}.pkt-dns{color:#2ed573;}.pkt-arp{color:#f1c40f;}
+.b2-roof-uk{height:16px;background:linear-gradient(180deg,#0a3040,#061820);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 100%,0 100%);border-bottom:2px solid rgba(0,229,255,.4);}
+.b2-net-sign{margin:8px 12px 4px;padding:7px;background:#0d1117;border:1px solid rgba(0,229,255,.35);border-top:2px solid #00e5ff;text-align:center;}
+.b2-net-sign-txt{font-family:'Press Start 2P',monospace;font-size:6px;color:#00e5ff;text-shadow:0 0 10px #00e5ff, 0 0 20px rgba(0,229,255,.4);line-height:2;}
+.b2-shark{font-size:20px;display:block;text-align:center;animation:sharkBob 2s ease-in-out infinite;}
+@keyframes sharkBob{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-3px) scaleX(-1)}}
+.b2-pkt-stream{margin:5px 12px;height:52px;background:#0d1117;border:1px solid rgba(0,229,255,.2);border-left:2px solid #00e5ff;overflow:hidden;position:relative;}
+.pkt{position:absolute;height:11px;border-radius:0;animation:pktMove 4s linear infinite;font-family:'Share Tech Mono',monospace;font-size:7px;white-space:nowrap;padding:1px 3px;}
+.pkt:nth-child(1){background:rgba(52,152,219,.25);color:#5ba3d9;width:170px;animation-delay:0s;top:3px;left:-180px;}
+.pkt:nth-child(2){background:rgba(231,76,60,.22);color:#e74c3c;width:170px;animation-delay:1.2s;top:16px;left:-180px;}
+.pkt:nth-child(3){background:rgba(46,213,115,.2);color:#2ed573;width:170px;animation-delay:2.4s;top:29px;left:-180px;}
+.pkt:nth-child(4){background:rgba(241,196,15,.2);color:#f1c40f;width:170px;animation-delay:3.2s;top:42px;left:-180px;}
+@keyframes pktMove{0%{left:-185px}100%{left:185px}}
+.b2-sub-uk{margin:4px 12px 6px;padding:5px 8px;background:rgba(0,0,0,.55);border-left:2px solid #00e5ff;text-align:left;font-size:8px;color:rgba(160,200,220,.55);letter-spacing:.5px;}
+.b2-play-btn{display:block;margin:5px 12px 12px;padding:7px 0;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(0,180,220,.08));border:1px solid #00e5ff;font-family:'Press Start 2P',monospace;font-size:6px;color:#00e5ff;text-align:center;text-decoration:none;box-shadow:0 0 14px rgba(0,229,255,.35);transition:all .2s;}
+.b2-play-btn:hover{background:linear-gradient(135deg,rgba(0,229,255,.35),rgba(0,180,220,.2));box-shadow:0 0 28px rgba(0,229,255,.7);color:#fff;}
+.b2-base-uk{width:214px;height:18px;background:linear-gradient(180deg,#0a2030,#040f18);border:1px solid rgba(0,229,255,.3);border-top:2px solid rgba(0,229,255,.5);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,14px 100%);}
+
+/* ── BUILDING 3 — VIOLET/INDIGO CIPHER VAULT ── */
+.b3-shell{width:250px;position:relative;}
+.vault-wrap{position:relative;width:230px;height:230px;margin:0 auto;}
+.v-outer{position:absolute;inset:0;background:rgba(20,8,50,.5);border:3px solid rgba(124,58,237,.6);box-shadow:0 0 55px rgba(124,58,237,.3);clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);}
+.v-inner{position:absolute;inset:22px;clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);background:repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(124,58,237,.08) 18px,rgba(124,58,237,.08) 19px),repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(124,58,237,.08) 18px,rgba(124,58,237,.08) 19px),rgba(12,6,35,.8);}
+.cf{position:absolute;font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(167,139,250,.5);animation:cfDrift 4s ease-in-out infinite;pointer-events:none;}
+.cf1{top:20%;left:15%;animation-delay:0s;}.cf2{top:30%;right:12%;animation-delay:.8s;}.cf3{bottom:30%;left:18%;animation-delay:1.6s;}.cf4{bottom:20%;right:16%;animation-delay:2.4s;}
+@keyframes cfDrift{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:.8;transform:translateY(-5px)}}
+.v-dial{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:50%;border:3px solid rgba(124,58,237,.5);animation:dialSpin 8s linear infinite;}
+.v-dial::before{content:'';position:absolute;inset:7px;border-radius:50%;border:2px dashed rgba(167,139,250,.28);}
+.v-dial::after{content:'';position:absolute;top:5px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--b3-secondary);box-shadow:0 0 12px var(--b3-primary);}
+@keyframes dialSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.v-overlay{position:absolute;inset:0;z-index:2;background:rgba(8,4,25,.58);clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);}
+.v-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:40px;z-index:4;filter:drop-shadow(0 0 18px rgba(124,58,237,.95));animation:lockFloat 3s ease-in-out infinite;}
+.v-locked-txt{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:10px;color:var(--b3-secondary);letter-spacing:4px;white-space:nowrap;z-index:5;}
+.bolt{position:absolute;width:16px;height:16px;background:rgba(12,6,35,.9);border:2px solid rgba(124,58,237,.55);border-radius:50%;z-index:3;}
+.bolt::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(124,58,237,.8);}
+.bt1{top:34px;left:22px}.bt2{top:34px;right:22px}.bt3{bottom:34px;left:22px}.bt4{bottom:34px;right:22px}.bt5{top:50%;left:7px;transform:translateY(-50%)}.bt6{top:50%;right:7px;transform:translateY(-50%)}
+.b3-base-lk{width:246px;height:20px;background:linear-gradient(180deg,#18103a,#0d0820);border:1px solid rgba(124,58,237,.3);border-top:2px solid rgba(124,58,237,.5);clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,18px 100%);}
+.b3-tower-uk{position:relative;width:230px;margin:0 auto;background:linear-gradient(180deg,#14082e,#080418);border:2px solid rgba(167,139,250,.65);box-shadow:0 0 50px rgba(124,58,237,.28);}
+.b3-roof-uk{display:flex;gap:4px;justify-content:center;align-items:flex-end;height:36px;margin-bottom:-1px;}
+.b3rb{border-radius:2px;}
+.b3-sign-uk{margin:9px 12px 4px;padding:9px 8px;background:#000;border:2px solid var(--b3-primary);box-shadow:0 0 22px var(--b3-glow);text-align:center;}
+.b3-sign-txt{font-family:'Press Start 2P',monospace;font-size:7px;line-height:2;color:var(--b3-secondary);text-shadow:0 0 14px var(--b3-primary);}
+.b3-cipher-icon{font-size:22px;display:block;text-align:center;margin:4px 0;animation:ciphSpin 3s ease-in-out infinite;}
+@keyframes ciphSpin{0%,100%{transform:rotate(-5deg) scale(1)}50%{transform:rotate(5deg) scale(1.08)}}
+.b3-cstream{margin:5px 12px;height:30px;background:#000;border:1px solid rgba(124,58,237,.35);overflow:hidden;position:relative;}
+.cc{position:absolute;font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(167,139,250,.75);animation:ccFall 2.5s linear infinite;}
+.cc:nth-child(1){left:10%;animation-delay:0s;}.cc:nth-child(2){left:30%;animation-delay:.6s;}.cc:nth-child(3){left:55%;animation-delay:1.2s;}.cc:nth-child(4){left:75%;animation-delay:1.8s;}
+@keyframes ccFall{0%{top:-10px;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:40px;opacity:0}}
+.b3-dec-bar{margin:4px 12px;height:7px;background:rgba(0,0,0,.6);border:1px solid rgba(124,58,237,.28);overflow:hidden;}
+.b3-dec-fill{height:100%;background:linear-gradient(90deg,var(--b3-primary),var(--b3-secondary));animation:decPulse 2s ease-in-out infinite;}
+@keyframes decPulse{0%,100%{width:30%}50%{width:90%}}
+.b3-sub-uk{margin:4px 12px 6px;padding:5px 7px;background:rgba(124,58,237,.07);border:1px solid rgba(167,139,250,.3);text-align:center;font-size:8px;color:rgba(167,139,250,.8);}
+.b3-play-btn{display:block;margin:5px 12px 12px;padding:7px 0;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(167,139,250,.12));border:1px solid var(--b3-primary);font-family:'Press Start 2P',monospace;font-size:6px;color:var(--b3-secondary);text-align:center;text-decoration:none;box-shadow:0 0 18px rgba(124,58,237,.4);transition:all .2s;}
+.b3-play-btn:hover{background:linear-gradient(135deg,rgba(124,58,237,.45),rgba(167,139,250,.25));box-shadow:0 0 32px rgba(124,58,237,.8);color:#fff;}
+.b3-base-uk{width:246px;height:20px;background:linear-gradient(180deg,#1c1040,#0c0620);border:1px solid rgba(124,58,237,.32);border-top:2px solid rgba(124,58,237,.6);clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,18px 100%);}
+
+/* ── BUILDING 4 ── */
+.b4-shell{width:210px;position:relative;}
+.hex-wrap{position:relative;width:195px;height:195px;margin:0 auto;}
+.h-outer{position:absolute;inset:0;background:rgba(8,12,40,.5);border:2px solid rgba(0,245,255,.3);box-shadow:0 0 40px rgba(0,245,255,.12);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
+.h-inner{position:absolute;inset:16px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:repeating-linear-gradient(60deg,transparent,transparent 14px,rgba(0,245,255,.05) 14px,rgba(0,245,255,.05) 15px),rgba(5,8,28,.62);}
+.h-bin-rain{position:absolute;inset:18px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);overflow:hidden;}
+.h-bin-col{position:absolute;top:0;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(0,245,255,.2);line-height:1.4;animation:binRain 3s linear infinite;}
+.h-bin-col:nth-child(1){left:30%;animation-delay:0s;}.h-bin-col:nth-child(2){left:55%;animation-delay:1s;}.h-bin-col:nth-child(3){left:70%;animation-delay:2s;}
+@keyframes binRain{0%{transform:translateY(-100%);opacity:0}10%{opacity:.4}90%{opacity:.4}100%{transform:translateY(100%);opacity:0}}
+.h-spin{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:90px;height:90px;border-radius:50%;border:2px solid rgba(0,245,255,.25);animation:dialSpin 10s linear infinite reverse;}
+.h-spin::after{content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);width:7px;height:7px;border-radius:50%;background:rgba(0,245,255,.65);box-shadow:0 0 8px var(--cyan);}
+.h-overlay{position:absolute;inset:0;z-index:2;background:rgba(5,3,20,.58);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
+.h-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;z-index:4;filter:drop-shadow(0 0 14px rgba(0,245,255,.75));animation:lockFloat 3.5s ease-in-out infinite;}
+.h-locked-txt{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:8px;color:var(--purple);letter-spacing:3px;white-space:nowrap;z-index:5;}
+.h-node{position:absolute;width:11px;height:11px;background:rgba(10,12,40,.9);border:2px solid rgba(0,245,255,.4);border-radius:50%;box-shadow:0 0 7px rgba(0,245,255,.3);}
+.hn1{top:0;left:50%;transform:translateX(-50%)}.hn2{top:40px;right:0}.hn3{bottom:40px;right:0}.hn4{bottom:0;left:50%;transform:translateX(-50%)}.hn5{bottom:40px;left:0}.hn6{top:40px;left:0}
+.b4-base-lk{width:213px;height:18px;background:linear-gradient(180deg,#141e35,#0a1228);border:1px solid rgba(0,245,255,.15);border-top:2px solid rgba(0,245,255,.28);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,14px 100%);}
+.b4-tower-uk{position:relative;width:195px;margin:0 auto;background:linear-gradient(180deg,#030a05,#010502);border:2px solid rgba(0,255,65,.55);box-shadow:0 0 50px rgba(0,255,65,.22);}
+.b4-roof-uk{display:flex;gap:3px;justify-content:center;align-items:flex-end;height:28px;margin-bottom:-1px;}
+.b4rb{border-radius:1px;}
+.b4-sign-uk{margin:8px 12px 4px;padding:7px;background:#000;border:2px solid rgba(0,255,65,.6);box-shadow:0 0 20px rgba(0,255,65,.35);text-align:center;}
+.b4-stego-icon{font-size:20px;display:block;text-align:center;margin:3px 0;animation:stegoFloat 3s ease-in-out infinite;}
+@keyframes stegoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px) scale(1.06)}}
+.b4-sign-txt{font-family:'Press Start 2P',monospace;font-size:7px;line-height:2;color:rgba(0,255,65,.9);text-shadow:0 0 10px rgba(0,255,65,.7);}
+.b4-img-grid{margin:5px 12px;height:36px;background:#000;border:1px solid rgba(0,255,65,.3);overflow:hidden;display:grid;grid-template-columns:repeat(14,1fr);grid-template-rows:repeat(3,1fr);gap:1px;padding:3px;}
+.b4-px{border-radius:1px;animation:pxFlick 3s ease-in-out infinite;}
+@keyframes pxFlick{0%,100%{opacity:.25}50%{opacity:.9}}
+.b4-hex-bar{margin:3px 12px;height:7px;background:rgba(0,0,0,.6);border:1px solid rgba(0,255,65,.2);overflow:hidden;}
+.b4-hex-fill{height:100%;background:linear-gradient(90deg,rgba(0,255,65,.8),rgba(0,200,100,.4));animation:hexScan 1.6s linear infinite;}
+@keyframes hexScan{0%{width:0%}100%{width:100%}}
+.b4-sub-uk{margin:3px 12px 5px;padding:4px 7px;background:rgba(0,255,65,.04);border:1px solid rgba(0,255,65,.22);text-align:center;font-size:8px;color:rgba(0,255,65,.65);}
+.b4-play-btn{display:block;margin:5px 12px 12px;padding:7px 0;background:linear-gradient(135deg,rgba(0,255,65,.14),rgba(0,200,80,.08));border:1px solid rgba(0,255,65,.6);font-family:'Press Start 2P',monospace;font-size:6px;color:rgba(0,255,65,.9);text-align:center;text-decoration:none;box-shadow:0 0 16px rgba(0,255,65,.3);transition:all .2s;}
+.b4-play-btn:hover{background:rgba(0,255,65,.22);box-shadow:0 0 30px rgba(0,255,65,.65);color:#fff;}
+.b4-base-uk{width:213px;height:18px;background:linear-gradient(180deg,#061008,#020602);border:1px solid rgba(0,255,65,.25);border-top:2px solid rgba(0,255,65,.5);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,14px 100%);}
+
+/* ── BUILDING 5 ── */
+.b5-shell{width:240px;position:relative;}
+.b5-tower-lk{position:relative;width:222px;margin:0 auto;background:linear-gradient(180deg,#180c02,#0c0601);border:1px solid rgba(200,146,42,.25);box-shadow:0 0 24px rgba(200,146,42,.08);}
+.b5-roof-lk{height:18px;background:linear-gradient(180deg,#2a1804,#180c02);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 100%,0 100%);}
+.b5-alert-screen{margin:12px 12px 0;height:56px;background:#000;border:2px solid rgba(200,146,42,.45);box-shadow:0 0 16px rgba(200,146,42,.25);display:flex;align-items:center;justify-content:center;animation:alertScr 2s ease-in-out infinite;}
+@keyframes alertScr{0%,100%{box-shadow:0 0 16px rgba(200,146,42,.25)}50%{box-shadow:0 0 28px rgba(200,146,42,.5)}}
+.b5-alert-txt{font-family:'Press Start 2P',monospace;font-size:5px;color:rgba(200,146,42,.7);text-align:center;line-height:2;letter-spacing:1px;}
+.b5-circuits{margin:8px 12px;display:flex;flex-direction:column;gap:4px;}
+.b5-circuit{height:6px;background:rgba(0,0,0,.6);border:1px solid rgba(200,146,42,.2);overflow:hidden;position:relative;}
+.b5-circuit::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:rgba(200,146,42,.18);animation:cirFlow 2.4s linear infinite;}
+@keyframes cirFlow{0%{left:-40%}100%{left:110%}}
+.b5-lock-door{width:50px;height:62px;margin:8px auto 0;background:linear-gradient(180deg,#1c0c02,#0c0501);border:2px solid rgba(200,146,42,.35);border-bottom:none;display:flex;align-items:center;justify-content:center;}
+.b5-door-glow{width:50px;height:7px;margin:0 auto;background:var(--amber);filter:blur(6px);opacity:.5;}
+.neural-lock{font-size:20px;filter:drop-shadow(0 0 8px rgba(200,146,42,.9));animation:lockFloat 3s ease-in-out infinite;}
+.b5-base-lk{width:246px;height:20px;background:linear-gradient(180deg,#200e02,#120802);border:1px solid rgba(200,146,42,.18);border-top:2px solid rgba(200,146,42,.32);clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,18px 100%);}
+.b5-tower-uk{position:relative;width:222px;margin:0 auto;background:linear-gradient(180deg,#12080a,#080308);border:2px solid rgba(255,102,0,.55);box-shadow:0 0 50px rgba(255,102,0,.2);}
+.b5-roof-uk{display:flex;gap:3px;justify-content:center;align-items:flex-end;height:40px;margin-bottom:-1px;}
+.b5rb{border-radius:2px;}
+.b5-sign-uk{margin:9px 12px 4px;padding:9px 8px;background:#000;border:2px solid var(--orange);box-shadow:0 0 22px rgba(255,102,0,.5);text-align:center;}
+.b5-brain-icon{font-size:22px;display:block;text-align:center;margin:4px 0;animation:brainPulse 2.5s ease-in-out infinite;}
+@keyframes brainPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 6px rgba(255,102,0,.4))}50%{transform:scale(1.1);filter:drop-shadow(0 0 18px rgba(255,102,0,.8))}}
+.b5-sign-txt{font-family:'Press Start 2P',monospace;font-size:7px;line-height:2;color:var(--orange);text-shadow:0 0 12px var(--orange);}
+.b5-terminal{margin:5px 12px;height:38px;background:#000;border:1px solid rgba(255,102,0,.35);overflow:hidden;position:relative;}
+.b5-term-line{position:absolute;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(200,146,42,.75);white-space:nowrap;animation:termScroll 3s linear infinite;}
+.b5-term-line:nth-child(1){top:4px;animation-delay:0s;}
+.b5-term-line:nth-child(2){top:16px;animation-delay:.8s;}
+.b5-term-line:nth-child(3){top:28px;animation-delay:1.6s;}
+@keyframes termScroll{0%{left:-120%;opacity:0}5%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+.b5-alert-bar{margin:4px 12px;height:7px;background:rgba(0,0,0,.6);border:1px solid rgba(255,102,0,.2);overflow:hidden;}
+.b5-alert-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ff3300);animation:alertFill 1.2s ease-in-out infinite alternate;}
+@keyframes alertFill{0%{width:55%}100%{width:95%}}
+.b5-sub-uk{margin:4px 12px 6px;padding:5px 7px;background:rgba(255,102,0,.05);border:1px solid rgba(255,102,0,.25);text-align:center;font-size:8px;color:rgba(255,140,60,.7);}
+.b5-play-btn{display:block;margin:5px 12px 12px;padding:8px 0;background:linear-gradient(135deg,rgba(255,102,0,.18),rgba(200,50,0,.1));border:1px solid var(--orange);font-family:'Press Start 2P',monospace;font-size:6px;color:var(--orange);text-align:center;text-decoration:none;box-shadow:0 0 18px rgba(255,102,0,.35);transition:all .2s;}
+.b5-play-btn:hover{background:linear-gradient(135deg,rgba(255,102,0,.35),rgba(200,80,0,.2));box-shadow:0 0 32px rgba(255,102,0,.7);color:#fff;}
+.b5-base-uk{width:246px;height:20px;background:linear-gradient(180deg,#1c0c02,#0c0601);border:1px solid rgba(255,102,0,.3);border-top:2px solid rgba(255,102,0,.55);clip-path:polygon(0 0,100% 0,calc(100% - 18px) 100%,18px 100%);}
+
+/* ════════════════════════════════════
+   PROGRESS PANEL
+════════════════════════════════════ */
+.prog-panel{position:fixed;bottom:36px;right:22px;z-index:20;background:rgba(3,5,15,.96);border:1px solid rgba(0,245,255,.18);padding:14px 18px;min-width:220px;box-shadow:0 0 24px rgba(0,245,255,.07);backdrop-filter:blur(12px);}
+.prog-hd{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--cyan);margin-bottom:10px;letter-spacing:1px;}
+.prow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.pdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pdot.on{background:var(--pink);box-shadow:0 0 7px var(--pink);}
+.pdot.on-cyan{background:var(--cyan);box-shadow:0 0 7px var(--cyan);}
+.pdot.on-purple{background:var(--purple);box-shadow:0 0 7px var(--purple);}
+.pdot.on-green{background:var(--green);box-shadow:0 0 7px var(--green);}
+.pdot.on-orange{background:var(--orange);box-shadow:0 0 7px var(--orange);}
+.pdot.off{background:rgba(80,80,120,.35);border:1px solid rgba(80,80,120,.4);}
+.plabel{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(180,180,220,.5);flex:1;}
+.plabel.on{color:var(--pink);}
+.plabel.on-cyan{color:var(--cyan);}
+.plabel.on-purple{color:var(--purple);}
+.plabel.on-green{color:rgba(0,255,157,.9);}
+.plabel.on-orange{color:rgba(255,120,40,.9);}
+.pbar-bg{width:46px;height:3px;background:rgba(0,0,0,.5);border:1px solid rgba(80,80,120,.2);overflow:hidden;}
+.pbar{height:100%;}
+
+/* ════════════════════════════════════
+   BADGES SECTION
+════════════════════════════════════ */
+#badgesSection{padding:50px 40px 120px;position:relative;z-index:1;}
+.sec-title{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--cyan);text-shadow:0 0 16px var(--cyan);letter-spacing:3px;margin-bottom:6px;}
+.sec-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,245,255,.3);letter-spacing:5px;margin-bottom:36px;}
+.badge-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;max-width:1100px;}
+.badge-card{display:flex;flex-direction:column;align-items:center;padding:28px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(0,245,255,.1);transition:.2s;}
+.badge-card.earned{border-color:rgba(255,215,0,.4);box-shadow:0 0 24px rgba(255,215,0,.1);}
+.badge-card.locked-b{opacity:.3;filter:grayscale(.8);}
+.badge-icon{font-size:42px;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(255,215,0,.5));}
+.badge-card.locked-b .badge-icon{filter:none;}
+.badge-name{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gold);text-align:center;line-height:1.9;margin-bottom:6px;white-space:pre-line;}
+.badge-card.locked-b .badge-name{color:rgba(255,255,255,.2);}
+.badge-desc{font-size:9px;color:rgba(255,255,255,.3);text-align:center;line-height:1.6;}
+.badge-card.earned .badge-desc{color:rgba(255,215,0,.5);}
+
+/* ════════════════════════════════════
+   CERTIFICATE SECTION
+════════════════════════════════════ */
+#certSection{padding:50px 40px 120px;position:relative;z-index:1;}
+.cert-hint{font-size:10px;color:rgba(255,255,255,.3);line-height:2.2;margin-bottom:24px;max-width:600px;}
+.name-row{margin-bottom:18px;max-width:480px;}
+.name-row label,.flag-lbl{font-size:9px;color:rgba(0,245,255,.55);letter-spacing:1px;display:block;margin-bottom:6px;}
+.name-row input{background:rgba(0,0,0,.5);border:1px solid rgba(0,245,255,.25);color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:13px;padding:9px 12px;outline:none;transition:.2s;width:100%;}
+.name-row input:focus{border-color:var(--cyan);}
+.flag-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;max-width:700px;}
+.flag-row{display:flex;flex-direction:column;gap:5px;}
+.flag-row input{background:rgba(0,0,0,.5);border:1px solid rgba(0,245,255,.25);color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px 10px;outline:none;transition:.2s;}
+.flag-row input:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,245,255,.15);}
+.flag-row input.ok{border-color:#00ff88;color:#00ff88;}
+.flag-row input.bad{border-color:var(--red);color:var(--red);}
+.cert-msg{font-size:10px;min-height:16px;margin-bottom:14px;color:rgba(255,255,255,.35);}
+.cert-msg.ok{color:#00ff88;}
+.cert-msg.err{color:var(--red);}
+.btn-cert{padding:10px 24px;background:linear-gradient(135deg,rgba(255,215,0,.14),rgba(255,150,0,.08));border:1px solid var(--gold);color:var(--gold);font-family:'Press Start 2P',monospace;font-size:8px;cursor:pointer;transition:all .25s;letter-spacing:2px;}
+.btn-cert:hover{background:linear-gradient(135deg,rgba(255,215,0,.28),rgba(255,150,0,.16));box-shadow:0 0 20px rgba(255,215,0,.3);}
+
+/* ════════════════════════════════════
+   CERTIFICATE VIEW
+════════════════════════════════════ */
+#certView{display:none;position:fixed;inset:0;z-index:500;background:rgba(3,5,15,.96);align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#certView.open{display:flex;}
+.cert-paper{width:780px;max-width:96vw;background:linear-gradient(135deg,#030812,#070d1f,#030812);border:3px solid var(--gold);box-shadow:0 0 80px rgba(255,215,0,.25),0 0 160px rgba(0,245,255,.1);padding:50px 56px;text-align:center;position:relative;overflow:hidden;}
+.cert-paper::before{content:'';position:absolute;inset:8px;border:1px solid rgba(255,215,0,.22);pointer-events:none;}
+.cert-paper::after{content:'';position:absolute;inset:15px;border:1px dashed rgba(255,215,0,.1);pointer-events:none;}
+.cert-corner{position:absolute;font-size:22px;}
+.cert-corner.tl{top:18px;left:18px;}.cert-corner.tr{top:18px;right:18px;}.cert-corner.bl{bottom:18px;left:18px;}.cert-corner.br{bottom:18px;right:18px;}
+.cert-academy{font-family:'Press Start 2P',monospace;font-size:7px;color:rgba(255,215,0,.45);letter-spacing:6px;margin-bottom:14px;}
+.cert-title{font-family:'Orbitron',sans-serif;font-weight:900;font-size:30px;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,.5);letter-spacing:5px;margin-bottom:6px;}
+.cert-of{font-family:'Press Start 2P',monospace;font-size:7px;color:rgba(255,215,0,.4);letter-spacing:4px;margin-bottom:8px;}
+.cert-presents{font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:5px;margin-bottom:24px;}
+.cert-recipient{font-family:'Orbitron',sans-serif;font-weight:700;font-size:26px;color:var(--cyan);text-shadow:0 0 20px rgba(0,245,255,.5);margin-bottom:10px;border-bottom:1px solid rgba(255,215,0,.3);padding-bottom:10px;display:inline-block;min-width:280px;}
+.cert-body{font-size:11px;color:rgba(255,255,255,.4);line-height:2.3;margin:14px 0 20px;}
+.cert-body b{color:rgba(255,255,255,.65);}
+.cert-badges-row{display:flex;gap:12px;justify-content:center;margin-bottom:18px;font-size:24px;}
+.cert-flag-strip{display:inline-block;padding:7px 18px;background:rgba(0,0,0,.6);border:1px solid rgba(255,215,0,.3);font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:20px;}
+.cert-date{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,215,0,.3);letter-spacing:3px;margin-bottom:18px;}
+.cert-sig{display:flex;justify-content:space-around;}
+.cert-sig-block{text-align:center;}
+.cert-sig-line{width:130px;height:1px;background:rgba(255,215,0,.3);margin:0 auto 5px;}
+.cert-sig-name{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(255,215,0,.35);letter-spacing:1px;}
+.cert-close-btn{position:absolute;top:12px;right:12px;background:transparent;border:1px solid rgba(255,80,80,.4);color:rgba(255,100,100,.6);font-size:14px;width:30px;height:30px;cursor:pointer;transition:.2s;}
+.cert-close-btn:hover{background:rgba(255,50,50,.2);color:#fff;}
+.cert-print-btn{padding:9px 22px;background:linear-gradient(135deg,rgba(255,215,0,.16),rgba(255,150,0,.08));border:1px solid var(--gold);color:var(--gold);font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;transition:.2s;letter-spacing:2px;}
+.cert-print-btn:hover{background:rgba(255,215,0,.25);}
+
+/* ════════════════════════════════════
+   TICKER
+════════════════════════════════════ */
+.ticker{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(0,0,0,.93);border-top:1px solid rgba(0,245,255,.12);padding:5px 0;overflow:hidden;white-space:nowrap;}
+.ticker-track{display:inline-flex;animation:tickRoll 40s linear infinite;}
+.tick-item{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,245,255,.45);padding:0 56px;white-space:nowrap;flex-shrink:0;}
+.tick-item b{color:var(--yellow);}
+@keyframes tickRoll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ════════════════════════════════════
+   MISC
+════════════════════════════════════ */
+.scanlines{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);pointer-events:none;z-index:99;}
+
+/* Floating nebula dust particles */
+.ptcl{position:fixed;border-radius:50%;pointer-events:none;animation:ptclRise linear infinite;opacity:0;}
+@keyframes ptclRise{0%{transform:translateY(100vh);opacity:0}10%{opacity:.4}90%{opacity:.3}100%{transform:translateY(-10vh);opacity:0}}
+
+@media(max-width:1300px){.world{transform:scale(.85);transform-origin:top center;}}
+@media(max-width:1080px){.world{transform:scale(.68);transform-origin:top center;}}
+@media(max-width:820px){.world{transform:scale(.52);transform-origin:top center;}.hub-title{font-size:9px;}}
+@media print{body *{visibility:hidden;}#certView,#certView *{visibility:visible;}#certView{position:absolute;inset:0;background:#030812!important;}.cert-close-btn,.cert-print-btn{display:none;}}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<!-- ══════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-logo">CYBER<span>HUB</span></div>
+      <div class="brand-sub">TRAINING HUB v2.0</div>
+      <div class="brand-cat">🐱</div>
+      <div class="brand-tag">Master cybersecurity through epic interactive missions</div>
+    </div>
+    <div class="auth-form">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">LOGIN</button>
+        <button class="auth-tab" onclick="switchAuthTab('register')">REGISTER</button>
+      </div>
+      <div id="loginPanel" class="auth-panel active">
+        <div class="form-grp">
+          <label class="form-lbl">Username</label>
+          <input class="form-inp" id="loginUser" type="text" placeholder="Enter your codename..." autocomplete="off">
+        </div>
+        <div class="form-grp">
+          <label class="form-lbl">Password</label>
+          <input class="form-inp" id="loginPass" type="password" placeholder="••••••••••">
+        </div>
+        <button class="btn-auth" onclick="doLogin()"><span>JACK IN →</span></button>
+        <div class="auth-err" id="loginErr"></div>
+      </div>
+      <div id="registerPanel" class="auth-panel">
+        <div class="form-grp">
+          <label class="form-lbl">Agent Codename</label>
+          <input class="form-inp" id="regUser" type="text" placeholder="Choose your alias..." autocomplete="off">
+        </div>
+        <div class="form-grp">
+          <label class="form-lbl">Email</label>
+          <input class="form-inp" id="regEmail" type="email" placeholder="your@email.com">
+        </div>
+        <div class="form-grp">
+          <label class="form-lbl">Password</label>
+          <input class="form-inp" id="regPass" type="password" placeholder="Min 6 characters">
+        </div>
+        <button class="btn-auth" onclick="doRegister()"><span>CREATE AGENT →</span></button>
+        <div class="auth-err" id="regErr"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     TOPBAR
+══════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-logo">CYBER<span>HUB</span> v2.0</div>
+  <nav class="topbar-nav">
+    <button class="nav-btn active" id="nav-missions" onclick="showSection('missions')">MISSIONS</button>
+    <button class="nav-btn"        id="nav-badges"   onclick="showSection('badges')">BADGES</button>
+    <button class="nav-btn"        id="nav-cert"     onclick="showSection('cert')">CERTIFICATE</button>
+  </nav>
+  <div class="topbar-right">
+    <span><span class="online-dot"></span>SYSTEM ONLINE</span>
+    <span id="statusLabel" style="color:rgba(255,230,0,.55);">LVL 1 ACTIVE</span>
+    <span id="agentLabel"></span>
+    <button class="btn-logout" onclick="doLogout()">LOGOUT</button>
+  </div>
+</header>
+
+<!-- congrats banner -->
+<div id="congrats-banner">
+  <span class="cb-text">🏆 ALL 5 LEVELS COMPLETE — CYBER GUARDIAN STATUS ACHIEVED!</span><br>
+  <span class="cb-link" onclick="showSection('cert')">→ CLAIM YOUR CERTIFICATE</span>
+</div>
+
+<!-- ══════════════════════════════════
+     SECTION: MISSIONS
+══════════════════════════════════ -->
+<div id="missionsSection" class="section active">
+  <main class="scene">
+    <h1 class="hub-title">THE SECURE SPRINTER ARCADE</h1>
+    <p class="hub-sub">— CYBER AWARENESS TRAINING HUB —</p>
+
+    <div class="world">
+      <!-- FIBER OPTIC CABLE LAYER -->
+      <div class="zigzag-grid">
+
+        <!-- B1 -->
+        <div class="bwrap top b1 unlocked spotlight-active" id="b1wrap" onclick="location.href='game1.html'">
+          <div class="tip">🎮 CLICK TO PLAY — CyberCat Quest!</div>
+          <div class="bshell b1-shell">
+            <div class="b-spotlight"></div>
+            <div id="b1badge"></div>
+            <div class="b1-roof">
+              <div class="rtb" style="width:16px;height:20px;background:#ff2d78;box-shadow:0 0 10px #ff2d78;"></div>
+              <div class="rtb" style="width:12px;height:13px;background:#ff6eb4;box-shadow:0 0 8px #ff6eb4;margin-bottom:4px;"></div>
+              <div class="rtb" style="width:20px;height:28px;background:#e040fb;box-shadow:0 0 10px #e040fb;"></div>
+              <div class="rtb" style="width:10px;height:16px;background:#ff2d78;box-shadow:0 0 8px #ff2d78;margin-bottom:5px;"></div>
+              <div class="rtb" style="width:18px;height:22px;background:#ff6eb4;box-shadow:0 0 8px #ff6eb4;"></div>
+              <div class="rtb" style="width:14px;height:10px;background:#e040fb;box-shadow:0 0 8px #e040fb;margin-bottom:2px;"></div>
+              <div class="rtb" style="width:22px;height:18px;background:#ff2d78;box-shadow:0 0 10px #ff2d78;"></div>
+            </div>
+            <div class="b1-tower">
+              <div class="b1-stripe"></div>
+              <div class="b1-sign">
+                <div class="b1-cat">🐱</div>
+                <div class="b1-sign-text">CYBERCAT<br>QUEST</div>
+              </div>
+              <div class="b1-sub"><div class="b1-sub-txt">CYBER HYGIENE<br>PLATFORMER</div></div>
+              <div class="b1-wins">
+                <div class="b1-win"></div><div class="b1-win"></div>
+                <div class="b1-win"></div><div class="b1-win"></div>
+              </div>
+              <div style="position:relative;height:20px;margin:0 14px;overflow:hidden;">
+                <div class="b1-runner">🐱</div>
+              </div>
+              <a class="b1-play" href="game1.html">▶ PLAY NOW</a>
+            </div>
+            <div class="b1-base"></div>
+            <div class="robots">
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#200018" stroke="rgba(255,45,120,.75)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#100008" stroke="rgba(255,45,120,.65)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(255,45,120,1)"/><circle cx="15" cy="8" r="1.5" fill="rgba(224,64,251,1)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#200018"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#200018"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#200018"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#200018"/></svg>
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#200018" stroke="rgba(255,110,180,.7)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#100008" stroke="rgba(255,110,180,.6)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(255,110,180,.95)"/><circle cx="15" cy="8" r="1.5" fill="rgba(224,64,251,.95)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#200018"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#200018"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#200018"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#200018"/></svg>
+            </div>
+          </div>
+          <div class="blabel on-pink" id="b1label">LVL 1 — UNLOCKED ✓</div>
+        </div>
+
+        <!-- B2 -->
+        <div class="bwrap bot b2 locked" id="b2wrap">
+          <div class="tip" id="b2tip">🔒 Complete Level 1 to unlock NetShark</div>
+          <div class="bshell b2-shell">
+            <div class="b-spotlight"></div>
+            <div id="b2badge"></div>
+            <div id="b2lk">
+              <div style="display:flex;gap:3px;justify-content:center;align-items:flex-end;height:32px;margin-bottom:-1px;">
+                <div style="width:14px;height:18px;background:#00e5ff;box-shadow:0 0 8px #00e5ff;border-radius:2px;opacity:.45;"></div>
+                <div style="width:10px;height:24px;background:#39d0d8;box-shadow:0 0 8px #39d0d8;border-radius:2px;opacity:.45;"></div>
+                <div style="width:18px;height:32px;background:#00f5ff;box-shadow:0 0 10px #00f5ff;border-radius:2px;opacity:.5;"></div>
+                <div style="width:12px;height:20px;background:#39d0d8;box-shadow:0 0 8px #39d0d8;border-radius:2px;opacity:.45;"></div>
+                <div style="width:8px;height:14px;background:#00e5ff;box-shadow:0 0 6px #00e5ff;border-radius:2px;opacity:.4;"></div>
+              </div>
+              <div class="b2-tower-lk">
+                <div class="b2-net-sign" style="opacity:.55;">
+                  <div class="b2-shark">🦈</div>
+                  <div class="b2-net-sign-txt">NETSHARK<br>PACKET SNIFFER</div>
+                </div>
+                <div class="b2-screen" style="height:36px;opacity:.45;">
+                  <div class="b2-screen-txt">🔒 LOCKED</div>
+                </div>
+                <div class="b2-vents" style="opacity:.4;"><div class="vent"></div><div class="vent"></div><div class="vent"></div></div>
+                <div style="display:flex;justify-content:center;"><div class="b2-door"><div class="door-lock">🔒</div></div></div>
+                <div class="b2-door-glow"></div>
+              </div>
+              <div class="b2-base-lk"></div>
+            </div>
+            <div id="b2uk" style="display:none;">
+              <div style="display:flex;gap:3px;justify-content:center;align-items:flex-end;height:32px;margin-bottom:-1px;">
+                <div style="width:14px;height:18px;background:#00e5ff;box-shadow:0 0 8px #00e5ff;border-radius:2px;"></div>
+                <div style="width:10px;height:24px;background:#39d0d8;box-shadow:0 0 8px #39d0d8;border-radius:2px;"></div>
+                <div style="width:18px;height:32px;background:#00f5ff;box-shadow:0 0 10px #00f5ff;border-radius:2px;"></div>
+                <div style="width:12px;height:20px;background:#39d0d8;box-shadow:0 0 8px #39d0d8;border-radius:2px;"></div>
+                <div style="width:8px;height:14px;background:#00e5ff;box-shadow:0 0 6px #00e5ff;border-radius:2px;"></div>
+              </div>
+              <div class="b2-tower-uk">
+                <div class="b2-roof-uk"></div>
+                <div class="b2-net-sign">
+                  <div class="b2-shark">🦈</div>
+                  <div class="b2-net-sign-txt">NETSHARK<br>PACKET SNIFFER</div>
+                </div>
+                <div class="b2-pkt-stream">
+                  <div class="pkt">TCP  192.168.1.4 → 10.0.0.1   SYN</div>
+                  <div class="pkt">RST  10.0.0.1 → 192.168.1.4  PORT SCAN</div>
+                  <div class="pkt">DNS  query A &gt; evil-c2.net</div>
+                  <div class="pkt">ARP  who-has 192.168.1.1 spoof</div>
+                </div>
+                <div class="b2-sub-uk">💡 suspicious packets look different</div>
+                <a class="b2-play-btn" href="game2.html">▶ PLAY NOW</a>
+              </div>
+              <div class="b2-base-uk"></div>
+            </div>
+            <div class="robots">
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#1a2550" stroke="rgba(155,93,229,.6)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#0d162e" stroke="rgba(155,93,229,.5)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(155,93,229,.9)"/><circle cx="15" cy="8" r="1.5" fill="rgba(255,45,120,.9)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#1a2550"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#1a2550"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#1a2550"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#1a2550"/></svg>
+            </div>
+          </div>
+          <div class="blabel" id="b2label">LEVEL 2</div>
+        </div>
+
+        <!-- B3 -->
+        <div class="bwrap top b3 locked" id="b3wrap">
+          <div class="tip" id="b3tip">🔒 Complete Level 2 to unlock Cryptic Vault</div>
+          <div class="bshell b3-shell">
+            <div class="b-spotlight"></div>
+            <div id="b3badge"></div>
+            <div id="b3lk">
+              <div class="vault-wrap">
+                <div class="v-outer"></div><div class="v-inner"></div>
+                <div class="cf cf1">A→K</div><div class="cf cf2">Z→M</div>
+                <div class="cf cf3">E→X</div><div class="cf cf4">T→Q</div>
+                <div class="v-dial"></div><div class="v-overlay"></div>
+                <div class="v-lock">🔒</div>
+                <div class="v-locked-txt">LOCKED</div>
+                <div class="bolt bt1"></div><div class="bolt bt2"></div><div class="bolt bt3"></div>
+                <div class="bolt bt4"></div><div class="bolt bt5"></div><div class="bolt bt6"></div>
+              </div>
+              <div class="b3-base-lk"></div>
+            </div>
+            <div id="b3uk" style="display:none;">
+              <div class="b3-roof-uk">
+                <div class="b3rb" style="width:14px;height:16px;background:#7c3aed;box-shadow:0 0 9px #7c3aed;"></div>
+                <div class="b3rb" style="width:10px;height:24px;background:#a78bfa;box-shadow:0 0 8px #a78bfa;"></div>
+                <div class="b3rb" style="width:18px;height:32px;background:#7c3aed;box-shadow:0 0 12px #7c3aed;"></div>
+                <div class="b3rb" style="width:12px;height:20px;background:#a78bfa;box-shadow:0 0 9px #a78bfa;"></div>
+                <div class="b3rb" style="width:8px;height:14px;background:#6d28d9;box-shadow:0 0 7px #6d28d9;"></div>
+              </div>
+              <div class="b3-tower-uk">
+                <div class="b3-sign-uk">
+                  <div class="b3-cipher-icon">🔐</div>
+                  <div class="b3-sign-txt">CRYPTIC<br>VAULT</div>
+                </div>
+                <div class="b3-cstream">
+                  <div class="cc">A→K</div><div class="cc">E→X</div>
+                  <div class="cc">Z→M</div><div class="cc">T→Q</div>
+                </div>
+                <div class="b3-dec-bar"><div class="b3-dec-fill"></div></div>
+                <div class="b3-sub-uk">BREAK THE CIPHER<br>RECOVER THE FLAG</div>
+                <a class="b3-play-btn" href="game3.html">▶ PLAY NOW</a>
+              </div>
+              <div class="b3-base-uk"></div>
+            </div>
+            <div class="robots">
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#160a35" stroke="rgba(124,58,237,.65)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#0d0620" stroke="rgba(124,58,237,.55)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(167,139,250,.95)"/><circle cx="15" cy="8" r="1.5" fill="rgba(124,58,237,.95)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#160a35"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#160a35"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#160a35"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#160a35"/></svg>
+            </div>
+          </div>
+          <div class="blabel" id="b3label">LEVEL 3</div>
+        </div>
+
+        <!-- B4 -->
+        <div class="bwrap bot b4 locked" id="b4wrap">
+          <div class="tip" id="b4tip">🔒 Complete Level 3 to unlock StegoVault</div>
+          <div class="bshell b4-shell">
+            <div class="b-spotlight"></div>
+            <div id="b4badge"></div>
+            <div id="b4lk">
+              <div class="hex-wrap">
+                <div class="h-outer"></div><div class="h-inner"></div>
+                <div class="h-bin-rain">
+                  <div class="h-bin-col">01101<br>10010<br>01100<br>11010<br>00101<br>10110</div>
+                  <div class="h-bin-col">11001<br>00110<br>10101<br>01100<br>10011<br>01001</div>
+                  <div class="h-bin-col">00111<br>11000<br>01010<br>10100<br>00011<br>11010</div>
+                </div>
+                <div class="h-spin"></div><div class="h-overlay"></div>
+                <div class="h-lock">🔒</div>
+                <div class="h-locked-txt">LOCKED</div>
+                <div class="h-node hn1"></div><div class="h-node hn2"></div><div class="h-node hn3"></div>
+                <div class="h-node hn4"></div><div class="h-node hn5"></div><div class="h-node hn6"></div>
+              </div>
+              <div class="b4-base-lk"></div>
+            </div>
+            <div id="b4uk" style="display:none;">
+              <div class="b4-roof-uk">
+                <div class="b4rb" style="width:12px;height:14px;background:rgba(0,255,65,.8);box-shadow:0 0 7px rgba(0,255,65,.8);"></div>
+                <div class="b4rb" style="width:8px;height:20px;background:rgba(0,200,80,.7);box-shadow:0 0 6px rgba(0,200,80,.7);"></div>
+                <div class="b4rb" style="width:16px;height:28px;background:rgba(0,255,65,.9);box-shadow:0 0 10px rgba(0,255,65,.9);"></div>
+                <div class="b4rb" style="width:10px;height:16px;background:rgba(0,180,60,.7);box-shadow:0 0 6px rgba(0,180,60,.7);"></div>
+                <div class="b4rb" style="width:6px;height:10px;background:rgba(0,255,65,.6);box-shadow:0 0 5px rgba(0,255,65,.6);"></div>
+              </div>
+              <div class="b4-tower-uk">
+                <div class="b4-sign-uk">
+                  <div class="b4-stego-icon">🕵️</div>
+                  <div class="b4-sign-txt">STEGO<br>VAULT</div>
+                </div>
+                <div class="b4-img-grid" id="b4pixels"></div>
+                <div class="b4-hex-bar"><div class="b4-hex-fill"></div></div>
+                <div class="b4-sub-uk">HIDE DATA IN IMAGES<br>BYPASS DLP SCANNERS</div>
+                <a class="b4-play-btn" href="game4.html">▶ PLAY NOW</a>
+              </div>
+              <div class="b4-base-uk"></div>
+            </div>
+            <div class="robots">
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#020a03" stroke="rgba(0,255,65,.6)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#010502" stroke="rgba(0,255,65,.5)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(0,255,65,.9)"/><circle cx="15" cy="8" r="1.5" fill="rgba(0,200,80,.9)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#020a03"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#020a03"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#020a03"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#020a03"/></svg>
+            </div>
+          </div>
+          <div class="blabel" id="b4label">LEVEL 4</div>
+        </div>
+
+        <!-- B5 -->
+        <div class="bwrap top b5 locked" id="b5wrap">
+          <div class="tip" id="b5tip">🔒 Complete Level 4 to unlock The Neural Core</div>
+          <div class="bshell b5-shell">
+            <div class="b-spotlight"></div>
+            <div id="b5badge"></div>
+            <div id="b5lk">
+              <div style="display:flex;gap:3px;justify-content:center;align-items:flex-end;height:40px;margin-bottom:-1px;">
+                <div style="width:12px;height:16px;background:rgba(200,146,42,.4);box-shadow:0 0 6px rgba(200,146,42,.4);border-radius:2px;"></div>
+                <div style="width:8px;height:22px;background:rgba(160,110,30,.4);box-shadow:0 0 5px rgba(160,110,30,.4);border-radius:2px;"></div>
+                <div style="width:16px;height:32px;background:rgba(200,146,42,.5);box-shadow:0 0 8px rgba(200,146,42,.5);border-radius:2px;"></div>
+                <div style="width:10px;height:18px;background:rgba(160,110,30,.4);box-shadow:0 0 5px rgba(160,110,30,.4);border-radius:2px;"></div>
+                <div style="width:6px;height:12px;background:rgba(200,146,42,.3);box-shadow:0 0 4px rgba(200,146,42,.3);border-radius:2px;"></div>
+              </div>
+              <div class="b5-tower-lk">
+                <div class="b5-roof-lk"></div>
+                <div class="b5-alert-screen"><div class="b5-alert-txt">⚠ BREACH<br>DETECTED<br>LOCKED</div></div>
+                <div class="b5-circuits">
+                  <div class="b5-circuit"></div><div class="b5-circuit"></div>
+                  <div class="b5-circuit"></div><div class="b5-circuit"></div>
+                </div>
+                <div style="display:flex;justify-content:center;"><div class="b5-lock-door"><div class="neural-lock">🔒</div></div></div>
+                <div class="b5-door-glow"></div>
+              </div>
+              <div class="b5-base-lk"></div>
+            </div>
+            <div id="b5uk" style="display:none;">
+              <div class="b5-roof-uk">
+                <div class="b5rb" style="width:10px;height:14px;background:rgba(255,102,0,.7);box-shadow:0 0 7px rgba(255,102,0,.7);"></div>
+                <div class="b5rb" style="width:8px;height:20px;background:rgba(200,80,0,.65);box-shadow:0 0 6px rgba(200,80,0,.65);"></div>
+                <div class="b5rb" style="width:16px;height:34px;background:rgba(255,102,0,.9);box-shadow:0 0 12px rgba(255,102,0,.9);"></div>
+                <div class="b5rb" style="width:10px;height:22px;background:rgba(255,140,40,.7);box-shadow:0 0 8px rgba(255,140,40,.7);"></div>
+                <div class="b5rb" style="width:6px;height:14px;background:rgba(200,80,0,.6);box-shadow:0 0 5px rgba(200,80,0,.6);"></div>
+                <div class="b5rb" style="width:12px;height:28px;background:rgba(255,60,0,.8);box-shadow:0 0 10px rgba(255,60,0,.8);"></div>
+              </div>
+              <div class="b5-tower-uk">
+                <div class="b5-sign-uk">
+                  <div class="b5-brain-icon">🧠</div>
+                  <div class="b5-sign-txt">NEURAL<br>CORE</div>
+                </div>
+                <div class="b5-terminal">
+                  <div class="b5-term-line">root@neural-core:~# ps aux | grep sshdd</div>
+                  <div class="b5-term-line">[CRITICAL] anomalous process detected...</div>
+                  <div class="b5-term-line">kill -9 3847 | grep Accepted 185.220.101.47</div>
+                </div>
+                <div class="b5-alert-bar"><div class="b5-alert-fill"></div></div>
+                <div class="b5-sub-uk">INCIDENT RESPONSE<br>BOSS MISSION</div>
+                <a class="b5-play-btn" href="game5.html">▶ PLAY NOW</a>
+              </div>
+              <div class="b5-base-uk"></div>
+            </div>
+            <div class="robots">
+              <svg class="rbot" viewBox="0 0 26 26" fill="none"><rect x="5" y="9" width="16" height="12" rx="2" fill="#1c0800" stroke="rgba(255,102,0,.65)" stroke-width="1"/><rect x="8" y="4" width="10" height="7" rx="1" fill="#0e0400" stroke="rgba(255,102,0,.5)" stroke-width="1"/><circle cx="11" cy="8" r="1.5" fill="rgba(255,102,0,.95)"/><circle cx="15" cy="8" r="1.5" fill="rgba(255,200,0,.95)"/><rect x="4" y="11" width="2" height="7" rx="1" fill="#1c0800"/><rect x="20" y="11" width="2" height="7" rx="1" fill="#1c0800"/><rect x="9" y="21" width="3" height="5" rx="1" fill="#1c0800"/><rect x="14" y="21" width="3" height="5" rx="1" fill="#1c0800"/></svg>
+            </div>
+          </div>
+          <div class="blabel" id="b5label">LEVEL 5 — BOSS</div>
+        </div>
+
+      </div><!-- /zigzag-grid -->
+      <div class="ground-line"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════
+     SECTION: BADGES
+══════════════════════════════════ -->
+<div id="badgesSection" class="section">
+  <div style="padding:50px 40px 120px;position:relative;z-index:1;">
+    <div class="sec-title">EARNED BADGES</div>
+    <div class="sec-sub">— YOUR ACHIEVEMENTS —</div>
+    <div class="badge-grid" id="badgeGrid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     SECTION: CERTIFICATE
+══════════════════════════════════ -->
+<div id="certSection" class="section">
+  <div style="padding:50px 40px 120px;position:relative;z-index:1;">
+    <div class="sec-title">CERTIFICATE</div>
+    <div class="sec-sub">— CLAIM YOUR ACHIEVEMENT —</div>
+    <p class="cert-hint">Complete all 5 levels, enter the CTF flags you collected, and receive a personalised certificate of completion.</p>
+    <div class="name-row">
+      <label>YOUR NAME — appears on certificate</label>
+      <input type="text" id="certName" placeholder="Enter your full name..." maxlength="50" autocomplete="off">
+    </div>
+    <div style="font-size:9px;color:rgba(0,245,255,.5);letter-spacing:1px;margin-bottom:10px;">CTF FLAGS</div>
+    <div class="flag-form">
+      <div class="flag-row"><label class="flag-lbl">LVL 1 — CyberCat Quest</label><input type="text" id="f1" placeholder="CTF{...}" autocomplete="off" spellcheck="false"></div>
+      <div class="flag-row"><label class="flag-lbl">LVL 2 — NetShark</label><input type="text" id="f2" placeholder="CTF{...}" autocomplete="off" spellcheck="false"></div>
+      <div class="flag-row"><label class="flag-lbl">LVL 3 — Cryptic Vault</label><input type="text" id="f3" placeholder="CTF{...}" autocomplete="off" spellcheck="false"></div>
+      <div class="flag-row"><label class="flag-lbl">LVL 4 — StegoVault</label><input type="text" id="f4" placeholder="CTF{...}" autocomplete="off" spellcheck="false"></div>
+      <div class="flag-row"><label class="flag-lbl">LVL 5 — Neural Core (Boss)</label><input type="text" id="f5" placeholder="CTF{...}" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <div class="cert-msg" id="certMsg"></div>
+    <button class="btn-cert" onclick="verifyCert()">🎓 GENERATE CERTIFICATE</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PROGRESS PANEL
+══════════════════════════════════ -->
+<div class="prog-panel" id="progPanel">
+  <div class="prog-hd">MISSION PROGRESS</div>
+  <div class="prow"><div class="pdot on" id="pd1"></div><div class="plabel on" id="pl1">LVL 1: CYBERCAT</div><div class="pbar-bg"><div class="pbar" id="pb1" style="width:10%;background:var(--pink);"></div></div></div>
+  <div class="prow"><div class="pdot off" id="pd2"></div><div class="plabel" id="pl2">LVL 2: NETSHARK</div><div class="pbar-bg"><div class="pbar" id="pb2" style="width:0%;background:rgba(80,80,120,.3);"></div></div></div>
+  <div class="prow"><div class="pdot off" id="pd3"></div><div class="plabel" id="pl3">LVL 3: CRYPTIC</div><div class="pbar-bg"><div class="pbar" id="pb3" style="width:0%;background:rgba(80,80,120,.3);"></div></div></div>
+  <div class="prow"><div class="pdot off" id="pd4"></div><div class="plabel" id="pl4">LVL 4: STEGO</div><div class="pbar-bg"><div class="pbar" id="pb4" style="width:0%;background:rgba(80,80,120,.3);"></div></div></div>
+  <div class="prow"><div class="pdot off" id="pd5"></div><div class="plabel" id="pl5">LVL 5: NEURAL CORE</div><div class="pbar-bg"><div class="pbar" id="pb5" style="width:0%;background:rgba(80,80,120,.3);"></div></div></div>
+</div>
+
+<!-- ══════════════════════════════════
+     TICKER
+══════════════════════════════════ -->
+<div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+
+<!-- ══════════════════════════════════
+     CERTIFICATE PRINT VIEW
+══════════════════════════════════ -->
+<div id="certView">
+  <div class="cert-paper">
+    <button class="cert-close-btn" onclick="closeCert()">✕</button>
+    <div class="cert-corner tl">✦</div><div class="cert-corner tr">✦</div>
+    <div class="cert-corner bl">✦</div><div class="cert-corner br">✦</div>
+    <div class="cert-academy">CYBERCAT ACADEMY — CERTIFIED</div>
+    <div class="cert-title">CERTIFICATE</div>
+    <div class="cert-of">OF COMPLETION</div>
+    <div class="cert-presents">— THIS CERTIFIES THAT —</div>
+    <div class="cert-recipient" id="certRecipient">AGENT NAME</div>
+    <div class="cert-body">
+      has successfully completed all <b>5 levels</b> of the<br>
+      <b>CyberCat Academy Cyber Awareness Programme</b>,<br>
+      demonstrating mastery in <b>phishing defence</b>, <b>network packet analysis</b>,<br>
+      <b>cryptographic cipher breaking</b>, <b>steganography</b>, and <b>incident response</b>.
+    </div>
+    <div class="cert-badges-row">🐱🦈🔐🕵️🧠</div>
+    <div class="cert-flag-strip" id="certFlagStrip">ALL 5 CTF FLAGS VERIFIED ✓</div>
+    <div class="cert-date" id="certDate"></div>
+    <div class="cert-sig">
+      <div class="cert-sig-block"><div class="cert-sig-line"></div><div class="cert-sig-name">CYBERCAT ACADEMY</div></div>
+      <div class="cert-sig-block"><div class="cert-sig-line"></div><div class="cert-sig-name">CYBER AWARENESS UNIT</div></div>
+    </div>
+  </div>
+  <button class="cert-print-btn" onclick="window.print()">🖨 PRINT / SAVE AS PDF</button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   CyberHub — Secure frontend (API-driven, no flags/passwords in client)
+   All auth and progress state lives on the server.
+   Flags are NEVER sent to this file — only submitted to /api/verify-flag.
+══════════════════════════════════════════════════════════════════════════ */
+
+const BADGE_DATA = [
+  {icon:'🐱', name:'PHISHING\nSURVIVOR',   desc:'Completed CyberCat Quest'},
+  {icon:'🦈', name:'PACKET\nHUNTER',       desc:'Completed NetShark'},
+  {icon:'🔐', name:'CIPHER\nBREAKER',      desc:'Completed Cryptic Vault'},
+  {icon:'🕵️', name:'STEGO\nMASTER',        desc:'Completed StegoVault'},
+  {icon:'🧠', name:'NEURAL\nDEFENDER',     desc:'Completed The Neural Core'},
+];
+
+let currentUser = null; // { id, username, email } — set after successful API call
+let userProgress = null;  // { level1: bool, level2: bool, ... } — set after successful API call
+
+/* ─── API helper ─────────────────────────────────────────────────────────── */
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers : { 'Content-Type': 'application/json' },
+    credentials : 'include', // send/receive HttpOnly cookies automatically
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(path, opts);
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
+
+/* ─── Auth tab switcher ──────────────────────────────────────────────────── */
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>
+    b.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('loginPanel').classList.toggle('active', tab==='login');
+  document.getElementById('registerPanel').classList.toggle('active', tab==='register');
+}
+
+/* ─── LOGIN ──────────────────────────────────────────────────────────────── */
+async function doLogin(){
+  const u   = document.getElementById('loginUser').value.trim();
+  const p   = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  err.textContent = '';
+
+  if(!u||!p){ err.textContent='⚠ All fields required'; return; }
+
+  const btn = document.querySelector('#loginPanel .btn-auth');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'CONNECTING...';
+
+  const { ok, data } = await api('POST', '/api/login', { username: u, password: p });
+
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'JACK IN →';
+
+  if (!ok) { err.textContent = '⚠ ' + (data.error || 'Login failed'); return; }
+
+  currentUser = data.user;
+  enterHub();
+}
+
+/* ─── REGISTER ───────────────────────────────────────────────────────────── */
+async function doRegister(){
+  const u   = document.getElementById('regUser').value.trim();
+  const e   = document.getElementById('regEmail').value.trim();
+  const p   = document.getElementById('regPass').value;
+  const err = document.getElementById('regErr');
+  err.textContent = '';
+
+  if(!u||!e||!p){ err.textContent='⚠ All fields required'; return; }
+  if(p.length<6){ err.textContent='⚠ Password must be 6+ characters'; return; }
+
+  const btn = document.querySelector('#registerPanel .btn-auth');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'CREATING...';
+
+  const { ok, data } = await api('POST', '/api/register', { username: u, email: e, password: p });
+
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'CREATE AGENT →';
+
+  if (!ok) { err.textContent = '⚠ ' + (data.error || 'Registration failed'); return; }
+
+  currentUser = data.user;
+  enterHub();
+}
+
+/* ─── ENTER HUB ──────────────────────────────────────────────────────────── */
+function enterHub(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('agentLabel').textContent   = '[ ' + currentUser.username.toUpperCase() + ' ]';
+  showSection('missions');  // Show main content
+  checkProgress();
+}
+
+/* ─── LOGOUT ─────────────────────────────────────────────────────────────── */
+async function doLogout(){
+  await api('POST', '/api/logout');
+  currentUser = null;
+  ['loginUser','loginPass','loginErr','regUser','regEmail','regPass','regErr']
+    .forEach(id=>{ const el=document.getElementById(id); if(el){el.value='';el.textContent='';}});
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('agentLabel').textContent   = '';
+  showSection('missions');
+}
+
+function showSection(name){
+  ['missionsSection','badgesSection','certSection'].forEach(id=>{
+    document.getElementById(id).classList.remove('active');
+  });
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+
+  if(name==='missions'){
+    document.getElementById('missionsSection').classList.add('active');
+    document.getElementById('nav-missions').classList.add('active');
+    document.getElementById('progPanel').style.display = 'block';
+  } else if(name==='badges'){
+    document.getElementById('badgesSection').classList.add('active');
+    document.getElementById('nav-badges').classList.add('active');
+    document.getElementById('progPanel').style.display = 'none';
+    renderBadges();
+  } else if(name==='cert'){
+    document.getElementById('certSection').classList.add('active');
+    document.getElementById('nav-cert').classList.add('active');
+    document.getElementById('progPanel').style.display = 'none';
+  }
+}
+
+function renderBadges(){
+  const p = userProgress || {};
+  const earned = [1,2,3,4,5].map(n=>p[`level${n}`]===true);
+  document.getElementById('badgeGrid').innerHTML = BADGE_DATA.map((b,i)=>`
+    <div class="badge-card ${earned[i]?'earned':'locked-b'}">
+      <div class="badge-icon">${earned[i]?b.icon:'🔒'}</div>
+      <div class="badge-name">${earned[i]?b.name:'???'}</div>
+      <div class="badge-desc">${earned[i]?b.desc:'Complete Level '+(i+1)+' to earn'}</div>
+    </div>`).join('');
+}
+
+function buildTicker(l1,l2,l3,l4,l5){
+  const base=[
+    '⚠ <b>THREAT DETECTED:</b> Unsecured Port 8080 — patch immediately',
+    '🛡 STAY SAFE — Strong passwords · Enable 2FA · Never share credentials',
+    '🐱 CYBERCAT ACADEMY — Master cybersecurity one quest at a time',
+    '🔑 PRO TIP — Use an authenticator app for two-factor auth, never SMS',
+    '📡 ALWAYS verify SSL certificates before entering credentials',
+    '🧠 BOSS LEVEL — The Neural Core awaits: can you contain the breach?',
+    l5?'🏆 ALL 5 LEVELS COMPLETE — Claim your certificate!'
+      :l4?'⚡ LVL 5 ACTIVE — The Neural Core is now unlocked, Analyst!'
+      :l3?'⚡ LVL 4 ACTIVE — StegoVault is now unlocked!'
+      :l2?'⚡ LVL 3 ACTIVE — Cryptic Vault is now unlocked!'
+      :l1?'⚡ LVL 2 ACTIVE — NetShark is now unlocked!'
+          :'🔒 Complete each level to unlock the next building',
+  ];
+  const all=[...base,...base];
+  document.getElementById('tickerTrack').innerHTML=all.map(t=>`<span class="tick-item">${t}</span>`).join('');
+}
+
+function buildPixels(){
+  const g=document.getElementById('b4pixels');
+  if(!g||g.childElementCount)return;
+  const pal=['rgba(0,255,65,.55)','rgba(0,200,80,.35)','rgba(0,255,65,.2)','rgba(0,150,50,.3)','rgba(0,255,65,.75)'];
+  for(let i=0;i<42;i++){
+    const px=document.createElement('div'); px.className='b4-px';
+    px.style.cssText=`background:${pal[i%pal.length]};animation-delay:${(Math.random()*3).toFixed(2)}s;`;
+    g.appendChild(px);
+  }
+}
+
+function unlockB2(){
+  document.getElementById('b2lk').style.display='none';
+  document.getElementById('b2uk').style.display='block';
+  const w=document.getElementById('b2wrap');
+  w.classList.replace('locked','unlocked');
+  w.onclick=()=>location.href='game2.html';
+  document.getElementById('b2tip').textContent='🎮 CLICK TO PLAY — NetShark!';
+  document.getElementById('b2label').classList.add('on');
+}
+
+function unlockB3(){
+  document.getElementById('b3lk').style.display='none';
+  document.getElementById('b3uk').style.display='block';
+  const w=document.getElementById('b3wrap');
+  w.classList.replace('locked','unlocked');
+  w.onclick=()=>location.href='game3.html';
+  const s=w.querySelector('.bshell');
+  s.addEventListener('mouseenter',()=>{s.style.filter='brightness(1.12) drop-shadow(0 0 28px rgba(188,140,255,.55))';s.style.transform='translateY(-6px)';});
+  s.addEventListener('mouseleave',()=>{s.style.filter='';s.style.transform='';});
+  document.getElementById('b3tip').textContent='🎮 CLICK TO PLAY — Cryptic Vault!';
+  document.getElementById('b3label').classList.add('on-purple');
+}
+
+function unlockB4(){
+  document.getElementById('b4lk').style.display='none';
+  document.getElementById('b4uk').style.display='block';
+  buildPixels();
+  const w=document.getElementById('b4wrap');
+  w.classList.replace('locked','unlocked');
+  w.onclick=()=>location.href='game4.html';
+  const s=w.querySelector('.bshell');
+  s.addEventListener('mouseenter',()=>{s.style.filter='brightness(1.12) drop-shadow(0 0 28px rgba(0,255,65,.45))';s.style.transform='translateY(-6px)';});
+  s.addEventListener('mouseleave',()=>{s.style.filter='';s.style.transform='';});
+  document.getElementById('b4tip').textContent='🎮 CLICK TO PLAY — StegoVault!';
+  document.getElementById('b4label').classList.add('on-green');
+}
+
+function unlockB5(){
+  document.getElementById('b5lk').style.display='none';
+  document.getElementById('b5uk').style.display='block';
+  const w=document.getElementById('b5wrap');
+  w.classList.replace('locked','unlocked');
+  w.onclick=()=>location.href='game5.html';
+  const s=w.querySelector('.bshell');
+  s.addEventListener('mouseenter',()=>{s.style.filter='brightness(1.12) drop-shadow(0 0 28px rgba(255,102,0,.55))';s.style.transform='translateY(-6px)';});
+  s.addEventListener('mouseleave',()=>{s.style.filter='';s.style.transform='';});
+  document.getElementById('b5tip').textContent='🎮 CLICK TO PLAY — The Neural Core!';
+  document.getElementById('b5label').classList.add('on-orange');
+  document.getElementById('b5wrap').classList.add('spotlight-active');
+}
+
+function addBadge(id){
+  const el=document.getElementById(id);
+  if(el&&!el.querySelector('.b-badge')){
+    const b=document.createElement('div'); b.className='b-badge'; b.textContent='🏅';
+    el.appendChild(b);
+  }
+}
+
+function spotlight(n){
+  document.querySelectorAll('.bwrap').forEach(w=>w.classList.remove('spotlight-active'));
+  const w=document.getElementById('b'+n+'wrap');
+  if(w) w.classList.add('spotlight-active');
+}
+
+async function checkProgress(){
+  try{
+    const { ok, data } = await api('GET', '/api/progress');
+    if (!ok) return; // silently fail if not authed
+
+    userProgress = data.progress || {};
+    const p = userProgress;
+    const l1 = !!p.level1;
+    const l2 = !!p.level2;
+    const l3 = !!p.level3;
+    const l4 = !!p.level4;
+    const l5 = !!p.level5;
+
+    buildTicker(l1,l2,l3,l4,l5);
+
+    document.getElementById('pb1').style.width = l1?'100%':'10%';
+    if(l1){ addBadge('b1badge'); document.getElementById('b1label').textContent='LVL 1 — COMPLETE ✓'; document.getElementById('b1label').className='blabel on-pink'; }
+    else { document.getElementById('b1label').className='blabel on-pink'; }
+
+    if(l1) unlockB2();
+    if(l2){
+      document.getElementById('pb2').style.cssText='width:100%;background:var(--cyan)';
+      document.getElementById('pd2').className='pdot on-cyan';
+      document.getElementById('pl2').className='plabel on-cyan';
+      document.getElementById('b2label').textContent='LVL 2 — COMPLETE ✓';
+      addBadge('b2badge');
+    } else if(l1){
+      document.getElementById('pd2').className='pdot on-cyan';
+      document.getElementById('pl2').className='plabel on-cyan';
+      document.getElementById('pb2').style.cssText='width:10%;background:var(--cyan)';
+    }
+
+    if(l2) unlockB3();
+    if(l3){
+      document.getElementById('pb3').style.cssText='width:100%;background:var(--purple)';
+      document.getElementById('pd3').className='pdot on-purple';
+      document.getElementById('pl3').className='plabel on-purple';
+      document.getElementById('b3label').textContent='LVL 3 — COMPLETE ✓';
+      addBadge('b3badge');
+    } else if(l2){
+      document.getElementById('pd3').className='pdot on-purple';
+      document.getElementById('pl3').className='plabel on-purple';
+      document.getElementById('pb3').style.cssText='width:10%;background:var(--purple)';
+    }
+
+    if(l3) unlockB4();
+    if(l4){
+      document.getElementById('pb4').style.cssText='width:100%;background:rgba(0,255,157,.8)';
+      document.getElementById('pd4').className='pdot on-green';
+      document.getElementById('pl4').className='plabel on-green';
+      document.getElementById('b4label').textContent='LVL 4 — COMPLETE ✓';
+      addBadge('b4badge');
+    } else if(l3){
+      document.getElementById('pd4').className='pdot on-green';
+      document.getElementById('pl4').className='plabel on-green';
+      document.getElementById('pb4').style.cssText='width:10%;background:rgba(0,255,157,.7)';
+    }
+
+    if(l4) unlockB5();
+    if(l5){
+      document.getElementById('pb5').style.cssText='width:100%;background:rgba(255,120,40,.9)';
+      document.getElementById('pd5').className='pdot on-orange';
+      document.getElementById('pl5').className='plabel on-orange';
+      document.getElementById('b5label').textContent='LVL 5 — COMPLETE ✓';
+      addBadge('b5badge');
+    } else if(l4){
+      document.getElementById('pd5').className='pdot on-orange';
+      document.getElementById('pl5').className='plabel on-orange';
+      document.getElementById('pb5').style.cssText='width:10%;background:rgba(255,120,40,.7)';
+    }
+
+    const sl=document.getElementById('statusLabel');
+    if(l5){sl.textContent='ALL LEVELS COMPLETE 🏆';sl.style.color='rgba(255,140,40,.95)';}
+    else if(l4){sl.textContent='BOSS ACTIVE 🧠';sl.style.color='rgba(255,102,0,.9)';}
+    else if(l3){sl.textContent='LVL 4 ACTIVE';sl.style.color='rgba(0,255,157,.75)';}
+    else if(l2){sl.textContent='LVL 3 ACTIVE';sl.style.color='rgba(188,140,255,.85)';}
+    else if(l1){sl.textContent='LVL 2 ACTIVE';sl.style.color='rgba(0,245,255,.85)';}
+
+    spotlight(l5?5:l4?5:l3?4:l2?3:l1?2:1);
+
+    if(l5) document.getElementById('congrats-banner').style.display='block';
+  }catch(e){ console.warn(e); }
+}
+
+async function verifyCert(){
+  const name = document.getElementById('certName').value.trim();
+  const vals = [
+    document.getElementById('f1').value.trim(),
+    document.getElementById('f2').value.trim(),
+    document.getElementById('f3').value.trim(),
+    document.getElementById('f4').value.trim(),
+    document.getElementById('f5').value.trim(),
+  ];
+  const msg = document.getElementById('certMsg');
+
+  if(!name){ msg.className='cert-msg err'; msg.textContent='⚠ Please enter your name.'; return; }
+  if(vals.some(v=>!v)){ msg.className='cert-msg err'; msg.textContent='⚠ Please enter all 5 CTF flags.'; return; }
+
+  msg.className='cert-msg'; msg.textContent='Verifying flags with server...';
+
+  // Submit each flag to the server — flags are NEVER compared client-side
+  let wrong = 0;
+  for (let i = 0; i < 5; i++) {
+    const { ok, data } = await api('POST', '/api/verify-flag', { level: i + 1, flag: vals[i] });
+    const el = document.getElementById('f' + (i + 1));
+    if (ok && data.correct) {
+      el.className = 'ok';
+    } else {
+      el.className = 'bad';
+      wrong++;
+    }
+  }
+
+  if (wrong) {
+    msg.className = 'cert-msg err';
+    msg.textContent = `✘ ${wrong} flag(s) incorrect. Check and retry.`;
+    return;
+  }
+  msg.className = 'cert-msg ok';
+  msg.textContent = '✔ All flags verified by server! Generating certificate...';
+  setTimeout(() => showCert(name), 500);
+}
+
+function showCert(name){
+  document.getElementById('certRecipient').textContent = name.toUpperCase();
+  document.getElementById('certDate').textContent = 'ISSUED: '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+  document.getElementById('certView').classList.add('open');
+}
+function closeCert(){ document.getElementById('certView').classList.remove('open'); }
+
+/* Floating nebula dust particles */
+for(let i=0;i<20;i++){
+  const p=document.createElement('div'); p.className='ptcl';
+  p.style.left=Math.random()*100+'vw';
+  p.style.width=p.style.height=(Math.random()*2+1)+'px';
+  p.style.animationDuration=(12+Math.random()*18)+'s';
+  p.style.animationDelay=(Math.random()*16)+'s';
+  const c=['rgba(0,245,255,0.6)','rgba(155,93,229,0.5)','rgba(255,45,120,0.4)','rgba(0,255,157,0.4)','rgba(255,102,0,0.35)'][Math.floor(Math.random()*5)];
+  p.style.background=c;
+  p.style.boxShadow=`0 0 4px ${c}`;
+  document.body.appendChild(p);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && document.getElementById('authScreen').style.display!=='none'){
+    if(document.getElementById('loginPanel').classList.contains('active')) doLogin();
+    else doRegister();
+  }
+});
+
+/* AUTO-LOGIN — ask the server if we have a valid session cookie */
+(async function(){
+  const { ok, data } = await api('GET', '/api/me');
+  if (ok && data.user) {
+    currentUser = data.user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('agentLabel').textContent   = '[ ' + currentUser.username.toUpperCase() + ' ]';
+    checkProgress();
+  } else {
+    buildTicker(false,false,false,false,false);
+  }
+})();
+
+
+</script>
+</body>
+</html>

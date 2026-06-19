@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberCat Quest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  :root {
+    --cyan: #ff2d78;
+    --magenta: #e040fb;
+    --purple: #ff6eb4;
+    --dark: #140008;
+    --dark2: #200012;
+    --glow-cyan: 0 0 10px #ff2d78, 0 0 20px #ff2d78, 0 0 40px #ff2d7844;
+    --glow-magenta: 0 0 10px #e040fb, 0 0 20px #e040fb, 0 0 40px #e040fb44;
+    --glow-purple: 0 0 10px #ff6eb4, 0 0 20px #ff6eb4;
+    /* Per-quest accent colors */
+    --q1: #ff2d78;   /* hot pink */
+    --q2: #e8186d;   /* deep rose */
+    --q3: #ff5e9e;   /* salmon pink */
+    --q4: #c9165b;   /* crimson rose */
+    --q5: #ff3d6b;   /* coral red-pink */
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #0d0005;
+    font-family: 'Rajdhani', sans-serif;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── NEBULA BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(200, 0, 100, 0.22) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 75%, rgba(140, 0, 180, 0.18) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 45, 120, 0.09) 0%, transparent 70%),
+      radial-gradient(ellipse 90% 70% at 70% 10%, rgba(224, 64, 251, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 30% at 30% 85%, rgba(255, 110, 180, 0.08) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+    animation: nebulaShift 30s ease-in-out infinite alternate;
+  }
+
+  @keyframes nebulaShift {
+    0%   { opacity: 0.85; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.9; }
+  }
+
+  /* Star field */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.55) 0%, transparent 100%),
+      radial-gradient(1px 1px at 28% 42%, rgba(255,255,255,0.40) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 43% 7%, rgba(255,255,255,0.60) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 33%, rgba(200,220,255,0.45) 0%, transparent 100%),
+      radial-gradient(1px 1px at 78% 15%, rgba(255,255,255,0.50) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 91% 55%, rgba(255,255,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 72%, rgba(200,230,255,0.40) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 88%, rgba(255,255,255,0.30) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 36% 95%, rgba(255,255,255,0.45) 0%, transparent 100%),
+      radial-gradient(1px 1px at 82% 80%, rgba(200,200,255,0.38) 0%, transparent 100%),
+      radial-gradient(1px 1px at 19% 58%, rgba(255,255,255,0.28) 0%, transparent 100%),
+      radial-gradient(1px 1px at 48% 62%, rgba(255,255,255,0.32) 0%, transparent 100%),
+      radial-gradient(2px 2px at 72% 44%, rgba(180,200,255,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 93% 28%, rgba(255,255,255,0.42) 0%, transparent 100%),
+      radial-gradient(1px 1px at 8% 90%, rgba(255,255,255,0.35) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+    animation: starTwinkle 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes starTwinkle {
+    0%   { opacity: 0.7; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.8; }
+  }
+
+  /* ── SCREENS ── */
+  .screen { display:none; position:relative; z-index:10; width:100%; max-width:1200px; }
+  .screen.active { display:flex; flex-direction:column; align-items:center; }
+
+  /* ══════════════ GAME SCREEN ══════════════ */
+  #gameScreen { padding:0; }
+
+  #gameCanvas {
+    display:block;
+    border: 1px solid rgba(255,45,120,0.3);
+    box-shadow: 0 0 40px rgba(255,45,120,0.2);
+  }
+
+  /* ── HUD overlay ── */
+  #hud {
+    position: absolute;
+    top: 0; left:0; right:0;
+    pointer-events:none;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 20;
+  }
+
+  .hud-box {
+    background: rgba(5,10,20,0.85);
+    border: 1px solid rgba(0,245,255,0.3);
+    padding: 8px 16px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  /* ── OVERLAY (intro, quiz, levelup) ── */
+  #overlay {
+    position:absolute; inset:0;
+    background: rgba(5,10,20,0.88);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    backdrop-filter: blur(4px);
+  }
+
+  #overlay.active { display:flex; }
+
+  .overlay-card {
+    width: 640px;
+    border: 1px solid rgba(0,245,255,0.3);
+    background: rgba(5,10,20,0.97);
+    padding: 40px;
+    position: relative;
+    box-shadow: var(--glow-cyan), inset 0 0 60px rgba(0,0,0,0.6);
+  }
+
+  .overlay-card::before {
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), var(--magenta), transparent);
+  }
+
+  .overlay-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .overlay-level-tag {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--magenta);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    text-shadow: var(--glow-magenta);
+  }
+
+  .overlay-body {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 28px;
+  }
+
+  .overlay-body strong { color: var(--cyan); }
+
+  /* quiz choices */
+  .choices { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+
+  .choice-btn {
+    text-align: left;
+    padding: 12px 20px;
+    background: rgba(0,245,255,0.04);
+    border: 1px solid rgba(0,245,255,0.2);
+    color: rgba(255,255,255,0.8);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn:hover { border-color: var(--cyan); color:#fff; background:rgba(0,245,255,0.1); }
+  .choice-btn.correct { border-color: #00ff88; color:#00ff88; background:rgba(0,255,136,0.1); box-shadow:0 0 10px rgba(0,255,136,0.3); }
+  .choice-btn.wrong { border-color: var(--magenta); color:var(--magenta); background:rgba(255,0,170,0.08); }
+
+  .choice-letter {
+    display:inline-block;
+    width:22px; height:22px;
+    background: rgba(0,245,255,0.15);
+    border: 1px solid rgba(0,245,255,0.3);
+    text-align:center; line-height:22px;
+    font-family:'Orbitron',monospace;
+    font-size:10px;
+    margin-right: 12px;
+    color: var(--cyan);
+  }
+
+  .feedback-msg {
+    font-size: 13px;
+    padding: 12px 16px;
+    border-left: 3px solid;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    display:none;
+  }
+
+  .feedback-msg.correct { border-color:#00ff88; color:#00ff88; background:rgba(0,255,136,0.06); }
+  .feedback-msg.wrong { border-color:var(--magenta); color:var(--magenta); background:rgba(255,0,170,0.06); }
+
+  .btn-continue {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, rgba(0,245,255,0.15), rgba(157,0,255,0.15));
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight:700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-continue:hover { box-shadow: var(--glow-cyan); background:var(--cyan); color:#000; }
+
+  /* level complete */
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .score-item {
+    background: rgba(0,245,255,0.05);
+    border: 1px solid rgba(0,245,255,0.15);
+    padding: 12px 16px;
+  }
+
+  .score-label { font-size:10px; letter-spacing:2px; color:rgba(255,255,255,0.4); text-transform:uppercase; }
+  .score-value { font-family:'Orbitron',monospace; font-size:22px; color:var(--cyan); text-shadow:var(--glow-cyan); margin-top:4px; }
+
+  /* glitch title */
+  .glitch-title {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 42px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    position: relative;
+    animation: glitch 4s infinite;
+  }
+
+  @keyframes glitch {
+    0%,90%,100% { clip-path:none; transform:none; }
+    92% { clip-path:polygon(0 15%,100% 15%,100% 30%,0 30%); transform:translateX(-4px); color:var(--magenta); text-shadow:var(--glow-magenta); }
+    94% { clip-path:polygon(0 60%,100% 60%,100% 75%,0 75%); transform:translateX(4px); }
+    96% { clip-path:none; transform:none; color:var(--cyan); }
+  }
+
+  /* CTF flag box */
+  .ctf-box {
+    margin: 16px 0;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #ffe600;
+    box-shadow: 0 0 30px rgba(255,230,0,0.4), inset 0 0 20px rgba(255,230,0,0.06);
+    text-align: center;
+    animation: ctfPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes ctfPulse {
+    0%,100% { box-shadow: 0 0 30px rgba(255,230,0,0.4); }
+    50%      { box-shadow: 0 0 65px rgba(255,230,0,0.8), 0 0 120px rgba(255,230,0,0.2); }
+  }
+  .ctf-lbl {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 9px;
+    color: rgba(255,230,0,0.55);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .ctf-flag {
+    font-family: 'Orbitron', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffe600;
+    text-shadow: 0 0 14px #ffe600, 0 0 28px rgba(255,230,0,0.4);
+    letter-spacing: 2px;
+  }
+
+  /* scanlines */
+  #scanlines {
+    position:fixed; inset:0; pointer-events:none; z-index:100;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  }
+
+  /* lives */
+  .life-icon { display:inline-block; color:var(--magenta); font-size:16px; text-shadow:var(--glow-magenta); }
+</style>
+</head>
+<body>
+<div id="scanlines"></div>
+
+<!-- ═══════════════════ GAME SCREEN ═══════════════════ -->
+<div id="gameScreen" class="screen active" style="position:relative;">
+  <canvas id="gameCanvas" width="1200" height="600"></canvas>
+  <div id="hud">
+    <div class="hud-box" id="hudScore">SCORE: 0</div>
+    <div class="hud-box" id="hudLevel">LEVEL 1 — PHISHING</div>
+    <div class="hud-box" id="hudLives">LIVES: <span class="life-icon">♥ ♥ ♥</span></div>
+    <button class="hud-box" id="pauseBtn" onclick="togglePause()" style="cursor:pointer;border:1px solid rgba(0,245,255,0.4);background:rgba(5,10,20,0.85);color:var(--cyan);font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;pointer-events:all;">⏸ PAUSE</button>
+  </div>
+  <div id="overlay">
+    <div class="overlay-card" id="overlayCard"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  GLOBAL STATE
+// ═══════════════════════════════════════════════════════
+// Session is now an HttpOnly cookie; check via /api/me
+let currentUser = 'AGENT';
+
+// ═══════════════════════════════════════════════════════
+//  CAT DRAWING ENGINE
+// ═══════════════════════════════════════════════════════
+function drawCyberCat(ctx, cx, cy, scale, opts){
+  const {idle=false, jumping=false, running=false, t=0} = opts;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+
+  const spd     = running ? 0.28 : idle ? 0.05 : 0.18;
+  const bodyBob = jumping ? -3 : Math.sin(t*spd*2)*( idle?1:2.5 );
+  const glow    = Math.sin(t*0.07)*0.35+0.65;
+  const eyePulse= Math.sin(t*0.11)*0.3+0.7;
+  const blink   = (Math.floor(t/120)%7===0 && t%120<5) ? 0.08 : 1;
+
+  const lf = Math.sin(t*spd);
+  const rf = Math.sin(t*spd + Math.PI);
+  const lb = Math.sin(t*spd + Math.PI);
+  const rb = Math.sin(t*spd);
+  const stride = running ? 14 : idle ? 3 : 10;
+
+  const BODY_GREY   = '#9ba8b5';
+  const BODY_DARK   = '#7a8a96';
+  const BODY_STRIPE = '#6a7a86';
+  const CHEST_WHITE = '#e8eef2';
+  const EAR_PINK    = '#f0a0a8';
+  const OUTLINE     = '#3a2a38';
+
+  function leg(ox, oy, phase, front, side){
+    const depth = side==='R';
+    const swing = jumping ? (front?-25:20) : phase*stride;
+    const upper=12, lower=11;
+    const kx = Math.sin(swing*Math.PI/180)*upper;
+    const ky = Math.cos(swing*Math.PI/180)*upper;
+    const ankAng = swing + (jumping?(front?18:-20):-Math.abs(phase)*14);
+    const ax = kx + Math.sin(ankAng*Math.PI/180)*lower;
+    const ay = ky + Math.cos(ankAng*Math.PI/180)*lower;
+
+    ctx.save();
+    ctx.translate(ox + (depth?1:0), oy + bodyBob + (depth?1:0));
+
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(kx*0.4, ky*0.4, kx, ky);
+    ctx.strokeStyle = depth ? BODY_DARK : BODY_GREY;
+    ctx.lineWidth = depth ? 8 : 9;
+    ctx.lineCap='round'; ctx.stroke();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth=0.8; ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(kx,ky);
+    ctx.quadraticCurveTo((kx+ax)*0.5,(ky+ay)*0.5-2,ax,ay);
+    ctx.strokeStyle = depth ? BODY_DARK : BODY_GREY;
+    ctx.lineWidth = depth ? 6.5 : 7.5;
+    ctx.stroke();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth=0.7; ctx.stroke();
+
+    if(!depth){
+      ctx.beginPath();
+      ctx.moveTo(kx*0.3,ky*0.3+1); ctx.lineTo(kx*0.7,ky*0.7+1);
+      ctx.strokeStyle=BODY_STRIPE; ctx.lineWidth=2.5; ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.ellipse(ax, ay+3, 6, 4, swing*Math.PI/180*0.2, 0, Math.PI*2);
+    ctx.fillStyle = depth ? '#ccd5dc' : CHEST_WHITE;
+    ctx.fill();
+    ctx.strokeStyle=OUTLINE; ctx.lineWidth=0.8; ctx.stroke();
+
+    ctx.restore();
+  }
+
+  leg(-12, 8, rb, false, 'R');
+  leg( 16, 6, rf, true,  'R');
+
+  ctx.save();
+  ctx.translate(-20, -6+bodyBob);
+  const ts = Math.sin(t*0.07)*18;
+  const ts2= Math.sin(t*0.07+0.9)*24;
+  const ttx=-16+Math.sin(t*0.05)*8, tty=-38+Math.cos(t*0.05)*8;
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-6,ts,-ttx*0.3,ts2,ttx,tty);
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=10; ctx.lineCap='round'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-6,ts,-ttx*0.3,ts2,ttx,tty);
+  ctx.strokeStyle=BODY_GREY; ctx.lineWidth=7; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-6,ts,-ttx*0.3,ts2,ttx,tty);
+  ctx.strokeStyle=BODY_STRIPE; ctx.lineWidth=3;
+  ctx.setLineDash([6,7]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(ttx,tty,5,0,Math.PI*2);
+  ctx.fillStyle=`rgba(0,245,255,${glow})`; ctx.shadowColor='#00f5ff'; ctx.shadowBlur=12;
+  ctx.fill(); ctx.shadowBlur=0;
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(0, bodyBob);
+
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 28, 22, 0, 0, Math.PI*2);
+  ctx.fillStyle=BODY_GREY;
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=2;
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(8, -4, 14, 16, 0.2, 0, Math.PI*2);
+  ctx.fillStyle=CHEST_WHITE; ctx.fill();
+
+  ctx.strokeStyle=BODY_STRIPE; ctx.lineWidth=2.5; ctx.lineCap='round';
+  [[-20,-18,-14,-12],[-22,-8,-15,-6],[-21,2,-14,4]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  [[16,-18],[18,-8],[16,2]].forEach(([x,y])=>{
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+5,y+2); ctx.stroke();
+  });
+
+  ctx.strokeStyle=`rgba(0,245,255,${glow*0.25})`; ctx.lineWidth=0.7;
+  ctx.shadowColor='#00f5ff'; ctx.shadowBlur=5;
+  ctx.beginPath();
+  ctx.moveTo(-10,-18); ctx.lineTo(-4,-18); ctx.lineTo(-4,-10); ctx.lineTo(4,-10);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(4,-10,2,0,Math.PI*2);
+  ctx.fillStyle=`rgba(0,245,255,${glow*0.5})`; ctx.fill();
+  ctx.shadowBlur=0;
+
+  ctx.restore();
+
+  const nod = jumping ? -0.2 : Math.sin(t*spd*1.1)*0.06;
+  ctx.save();
+  ctx.translate(22, -24+bodyBob);
+  ctx.rotate(nod);
+
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 22, 20, 0, 0, Math.PI*2);
+  ctx.fillStyle=BODY_GREY;
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=2;
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(4, 6, 14, 12, 0.05, 0, Math.PI*2);
+  ctx.fillStyle=CHEST_WHITE; ctx.fill();
+
+  ctx.strokeStyle=BODY_STRIPE; ctx.lineWidth=2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-2,-18); ctx.lineTo(-2,-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-18,-8); ctx.lineTo(-12,-5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-19,0);  ctx.lineTo(-13,1);  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(18,-5);  ctx.lineTo(14,-3);  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(-12, -18);
+  ctx.rotate(-0.2);
+  ctx.beginPath();
+  ctx.moveTo(-8, 2); ctx.lineTo(8, 2); ctx.lineTo(0, -16); ctx.closePath();
+  ctx.fillStyle=BODY_GREY; ctx.fill();
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(0, -11); ctx.closePath();
+  ctx.fillStyle=EAR_PINK; ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(12, -18);
+  ctx.rotate(0.2);
+  ctx.beginPath();
+  ctx.moveTo(-8, 2); ctx.lineTo(8, 2); ctx.lineTo(0, -16); ctx.closePath();
+  ctx.fillStyle=BODY_GREY; ctx.fill();
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(0, -11); ctx.closePath();
+  ctx.fillStyle=EAR_PINK; ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(-7, -2);
+  ctx.beginPath(); ctx.ellipse(0,0,9,8*blink,0,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.strokeStyle=OUTLINE; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,1,6,5*blink,0,0,Math.PI*2);
+  ctx.fillStyle='#4ab8c8'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,1,3,4*blink,0,0,Math.PI*2);
+  ctx.fillStyle='#1a1a2e'; ctx.fill();
+  ctx.beginPath(); ctx.arc(-2,-1,2,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(9, -2);
+  ctx.beginPath(); ctx.ellipse(0,0,9,8*blink,0,0,Math.PI*2);
+  ctx.fillStyle='#1a2838'; ctx.fill();
+  ctx.strokeStyle='#2a4060'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,0,9,8*blink,0,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(0,245,255,${eyePulse*0.7})`; ctx.lineWidth=2;
+  ctx.shadowColor='#00f5ff'; ctx.shadowBlur=14*eyePulse;
+  ctx.stroke(); ctx.shadowBlur=0;
+  const rg=ctx.createRadialGradient(0,0,0,0,0,7);
+  rg.addColorStop(0,`rgba(0,245,255,${eyePulse})`);
+  rg.addColorStop(0.5,`rgba(0,160,200,${eyePulse*0.5})`);
+  rg.addColorStop(1,'transparent');
+  ctx.beginPath(); ctx.ellipse(0,0,7,6*blink,0,0,Math.PI*2);
+  ctx.fillStyle=rg; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,0,1.5,4.5*blink,0,0,Math.PI*2);
+  ctx.fillStyle='#000'; ctx.fill();
+  const scanY = ((t*0.6)%14)-7;
+  ctx.beginPath(); ctx.moveTo(-6,scanY*blink); ctx.lineTo(6,scanY*blink);
+  ctx.strokeStyle=`rgba(0,245,255,${0.5*eyePulse})`; ctx.lineWidth=0.8;
+  ctx.shadowColor='#00f5ff'; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+  ctx.beginPath(); ctx.arc(-2,-2,1.5,0,Math.PI*2);
+  ctx.fillStyle=`rgba(0,245,255,0.8)`; ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.moveTo(4, 7); ctx.lineTo(2, 10); ctx.lineTo(6, 10); ctx.closePath();
+  ctx.fillStyle='#c06070'; ctx.fill();
+
+  ctx.strokeStyle='#c06070'; ctx.lineWidth=1.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(4,10); ctx.quadraticCurveTo(1,13,0,12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,10); ctx.quadraticCurveTo(7,13,8,12); ctx.stroke();
+
+  ctx.beginPath(); ctx.ellipse(4,13,2.5,2,0,0,Math.PI*2);
+  ctx.fillStyle='#e87088'; ctx.fill();
+
+  const wb=Math.sin(t*spd*1.3)*0.8;
+  ctx.strokeStyle='rgba(200,215,230,0.7)'; ctx.lineWidth=0.8;
+  [[-2,5+wb,-18,2+wb],[-2,8+wb,-18,8+wb],[-2,11+wb,-17,14+wb]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  [[10,5+wb,24,2+wb],[10,8+wb,24,8+wb],[10,11+wb,23,14+wb]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+
+  ctx.restore();
+
+  leg( 16, 6, lf, true,  'L');
+  leg(-12, 8, lb, false, 'L');
+
+  ctx.restore();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEVEL DATA
+// ═══════════════════════════════════════════════════════
+const QUEST_COLORS = [
+  {primary:'#ff2d78', glow:'rgba(255,45,120', bg:'#140008', hud:'rgba(255,45,120,0.3)'},  // Q1 hot pink
+  {primary:'#d42066', glow:'rgba(212,32,102', bg:'#160010', hud:'rgba(212,32,102,0.3)'},  // Q2 deep rose
+  {primary:'#ff5e9e', glow:'rgba(255,94,158', bg:'#180010', hud:'rgba(255,94,158,0.3)'},  // Q3 salmon
+  {primary:'#c91559', glow:'rgba(201,21,89',  bg:'#180010', hud:'rgba(201,21,89,0.3)'},   // Q4 crimson
+  {primary:'#ff3d6b', glow:'rgba(255,61,107', bg:'#120008', hud:'rgba(255,61,107,0.3)'},  // Q5 coral
+];
+
+const LEVELS=[
+{
+  id:1, name:'QUEST 1 — PHISHING WATERS',
+  topic:'Phishing & Social Engineering',
+  color:'#ff2d78',
+  bgColor:'#140008',
+  intro:{
+    title:'QUEST 1 — PHISHING WATERS',
+    body:`You've entered the <strong>Dark Web District</strong>. Cybercriminals lurk here, disguising malicious emails as legitimate messages to steal your data.<br><br>
+    <strong>Phishing</strong> is when attackers impersonate trusted sources — banks, employers, even friends — to trick you into revealing passwords or clicking malicious links.<br><br>
+    Stay sharp, collect knowledge orbs, and watch out for incoming phishing nets!`
+  },
+  quizzes:[
+    {
+      trigger:1200,
+      title:'INCOMING TRANSMISSION',
+      prompt:`You receive an email: <em>"URGENT: Your bank account has been compromised! Click here immediately to verify your details."</em><br><br>What do you do?`,
+      choices:[
+        {text:'Click the link — the urgency is real', correct:false},
+        {text:'Reply with your account number to verify', correct:false},
+        {text:'Forward it to warn colleagues', correct:false},
+        {text:'Contact your bank directly via their official website number', correct:true}
+      ],
+      explanation:{
+        correct:'Correct! Always verify through official channels. Never trust links in unsolicited emails. +200 bonus points!',
+        wrong:'Banks never ask for sensitive info via email links. Always contact them directly via their official number.'
+      }
+    },
+    {
+      trigger:2600,
+      title:'SPEAR PHISHING DETECTED',
+      prompt:`A message arrives: <em>"Hi [Your Name], it's Mark from IT. We need your password to run a remote diagnostic. Reply ASAP."</em>`,
+      choices:[
+        {text:'Flag it to security — no IT team ever needs your password', correct:true},
+        {text:'Give the password since IT requires access', correct:false},
+        {text:'Ask Mark to meet you in person instead', correct:false},
+        {text:'Reset your password first, then share the old one', correct:false}
+      ],
+      explanation:{
+        correct:'Exactly right! Legitimate IT teams never ask for your password. This is spear phishing — targeted and personal. +200 points!',
+        wrong:'Spear phishing uses personal information to seem credible. IT professionals NEVER need your password.'
+      }
+    }
+  ],
+  summary:'You learned: Phishing uses urgency & impersonation. Always verify through official channels, never click suspicious links, and remember — no legitimate org needs your password.'
+},{
+  id:2, name:'QUEST 2 — PASSWORD FORTRESS',
+  topic:'Password Security & 2FA',
+  color:'#e040fb',
+  bgColor:'#160010',
+  intro:{
+    title:'QUEST 2 — PASSWORD FORTRESS',
+    body:`Welcome to the <strong>Cryptographic Citadel</strong>. Weak passwords are digital skeletons — easy to pick.<br><br>
+    <strong>Strong passwords</strong> are long (12+ characters), random, and unique per account. A <strong>password manager</strong> stores them securely.<br><br>
+    <strong>2FA (Two-Factor Authentication)</strong> adds a second lock — even if your password is stolen, attackers can't get in without your phone or token.`
+  },
+  quizzes:[
+    {
+      trigger:1200,
+      title:'PASSWORD CHECK',
+      prompt:`You're creating a new account. Which password is the strongest?`,
+      choices:[
+        {text:'Your pet name combined with your birth year', correct:false},
+        {text:'T4#mK9@zXq!2wP — 16 random characters', correct:true},
+        {text:'The same strong password reused everywhere', correct:false},
+        {text:'Password123! with an exclamation mark', correct:false}
+      ],
+      explanation:{
+        correct:'Perfect! Long, random, unique passwords are nearly impossible to crack. Use a password manager! +200 points!',
+        wrong:'Length and randomness are key. Never reuse passwords — a breach on one site exposes all others.'
+      }
+    },
+    {
+      trigger:2600,
+      title:'2FA DECISION',
+      prompt:`Your email provider offers 2FA. What type is most secure?`,
+      choices:[
+        {text:'SMS code sent to your phone number', correct:false},
+        {text:'Security question about personal info', correct:false},
+        {text:'Skip 2FA — a strong password is sufficient', correct:false},
+        {text:'TOTP authenticator app on your device', correct:true}
+      ],
+      explanation:{
+        correct:'Authenticator apps generate time-based codes on your device — far more secure than SMS, which can be SIM-swapped! +200 points!',
+        wrong:'SMS can be intercepted via SIM swapping. Authenticator apps (Google Authenticator, Authy) are the gold standard.'
+      }
+    }
+  ],
+  summary:'You learned: Use long, random, unique passwords for every account. Activate 2FA using an authenticator app. A password manager is your best ally.'
+},{
+  id:3, name:'QUEST 3 — USB DANGER ZONE',
+  topic:'Safe USB & Device Handling',
+  color:'#ff6eb4',
+  bgColor:'#180010',
+  intro:{
+    title:'QUEST 3 — USB DANGER ZONE',
+    body:`You enter a <strong>neon-lit hardware market</strong>. Strange USB drives litter the floor...<br><br>
+    <strong>Baiting attacks</strong> use physical devices — USB drives, charging cables — to compromise systems. Plugging in an unknown device can install malware instantly.<br><br>
+    <strong>Juice jacking</strong> occurs through public USB charging ports. Always use your own cable and a power adapter.`
+  },
+  quizzes:[
+    {
+      trigger:1200,
+      title:'MYSTERY USB',
+      prompt:`You find a USB drive labeled "SALARY_CONFIDENTIAL_2024" in the company parking lot. What do you do?`,
+      choices:[
+        {text:'Plug it in — curiosity is worth the risk', correct:false},
+        {text:'Insert it into a personal device to isolate the risk', correct:false},
+        {text:'Hand it to IT or security without plugging it in', correct:true},
+        {text:'Keep it since no one claimed it', correct:false}
+      ],
+      explanation:{
+        correct:'Correct! Found USB drives are often planted by attackers. Never plug in unknown devices — hand them to IT. +200 points!',
+        wrong:'Attackers deliberately leave USB drives in places people will find them. Plugging one in can compromise the entire network.'
+      }
+    },
+    {
+      trigger:2600,
+      title:'PUBLIC CHARGING PORT',
+      prompt:`Your phone battery is at 5%. You see a free USB charging station at the airport. What do you do?`,
+      choices:[
+        {text:'Use your own cable and personal power adapter instead', correct:true},
+        {text:'Use the port — airports are regulated spaces', correct:false},
+        {text:'Charge but avoid opening sensitive apps', correct:false},
+        {text:'Check with nearby travellers if the port is safe', correct:false}
+      ],
+      explanation:{
+        correct:'Smart move! Juice jacking uses compromised USB ports to steal data or install malware. Your own adapter is always safe. +200 points!',
+        wrong:'Public USB ports can be compromised. Always carry your own power adapter to plug into a wall outlet instead.'
+      }
+    }
+  ],
+  summary:'You learned: Never plug in unknown USB devices. Avoid public USB charging ports (juice jacking). Use your own adapter. Physical security is digital security.'
+},{
+  id:4, name:'QUEST 4 — RANSOMWARE RUINS',
+  topic:'Ransomware & Backup Strategy',
+  color:'#d94fad',
+  bgColor:'#180010',
+  intro:{
+    title:'QUEST 4 — RANSOMWARE RUINS',
+    body:`The city is <strong>under attack</strong>. Red alert pulses through every screen — ransomware has encrypted the city's data.<br><br>
+    <strong>Ransomware</strong> is malware that encrypts your files and demands payment for decryption. Paying doesn't guarantee recovery.<br><br>
+    The only true defense: <strong>offline backups</strong> (3-2-1 rule: 3 copies, 2 media types, 1 off-site).`
+  },
+  quizzes:[
+    {
+      trigger:1200,
+      title:'RANSOMWARE STRIKE',
+      prompt:`Your screen shows: "All your files are encrypted. Pay 2 BTC to recover them." What's your FIRST action?`,
+      choices:[
+        {text:'Pay the ransom — you need those files urgently', correct:false},
+        {text:'Restart the machine to try to clear the infection', correct:false},
+        {text:'Use the decryption link shown on screen', correct:false},
+        {text:'Immediately disconnect from the network', correct:true}
+      ],
+      explanation:{
+        correct:'Critical first step! Disconnecting stops the ransomware from spreading to other systems. Then report to IT. +200 points!',
+        wrong:'First: disconnect from network to stop spread. Never pay — it funds criminals and may not work. Report to IT immediately.'
+      }
+    },
+    {
+      trigger:2600,
+      title:'BACKUP STRATEGY',
+      prompt:`Which backup strategy best protects against ransomware?`,
+      choices:[
+        {text:'A single backup kept on the same hard drive', correct:false},
+        {text:'Cloud-only backup that stays permanently connected', correct:false},
+        {text:'3-2-1: local copy, external drive, off-site — tested regularly', correct:true},
+        {text:'Email critical files to a backup address', correct:false}
+      ],
+      explanation:{
+        correct:'The 3-2-1 rule! 3 copies, 2 different media, 1 off-site. Offline backups survive ransomware. Test them regularly! +200 points!',
+        wrong:'Connected storage can also be encrypted by ransomware. The 3-2-1 rule ensures at least one copy survives.'
+      }
+    }
+  ],
+  summary:'You learned: Ransomware encrypts files for ransom. Never pay. Disconnect immediately when infected. Use 3-2-1 backup strategy with offline copies tested regularly.'
+},{
+  id:5, name:'QUEST 5 — THE DARK NETWORK',
+  topic:'Public Wi-Fi & Man-in-the-Middle',
+  color:'#ff4499',
+  bgColor:'#120008',
+  intro:{
+    title:'QUEST 5 — THE DARK NETWORK',
+    body:`You enter the <strong>Neon Café Zone</strong>. Free Wi-Fi hotspots glow invitingly... but danger lurks.<br><br>
+    <strong>Man-in-the-Middle (MitM) attacks</strong> intercept traffic between you and the internet on unsecured networks.<br><br>
+    <strong>Evil Twin</strong> attacks create fake Wi-Fi networks that mimic legitimate ones. Always use a <strong>VPN</strong> on public Wi-Fi and verify HTTPS.`
+  },
+  quizzes:[
+    {
+      trigger:1200,
+      title:'FREE WI-FI TRAP',
+      prompt:`You see two networks: "Airport_WiFi_FREE" and "Airport_Official_WiFi". The first has 5 bars but no password. What do you do?`,
+      choices:[
+        {text:'Confirm the real network name with staff, then connect via VPN', correct:true},
+        {text:'Pick the stronger signal — 5 bars wins', correct:false},
+        {text:'Both networks are vetted — airports are secure', correct:false},
+        {text:'The open one is faster so use that', correct:false}
+      ],
+      explanation:{
+        correct:'Exactly! Evil Twin networks mimic legitimate ones. Always verify network names and use a VPN on public Wi-Fi. +200 points!',
+        wrong:'The unprotected network could be an Evil Twin — a fake hotspot designed to intercept all your traffic.'
+      }
+    },
+    {
+      trigger:2600,
+      title:'MITM MOMENT',
+      prompt:`You're on public Wi-Fi and need to log into your bank. What's the safest approach?`,
+      choices:[
+        {text:'Proceed normally — HTTPS encryption is sufficient', correct:false},
+        {text:'Switch to incognito mode for anonymous browsing', correct:false},
+        {text:'Hold off until you are on a trusted private connection', correct:true},
+        {text:'Remove other users from the network first', correct:false}
+      ],
+      explanation:{
+        correct:'Best practice! Even HTTPS can be compromised by sophisticated MitM attacks. Use mobile data or a VPN for sensitive tasks. +200 points!',
+        wrong:'Incognito doesn\'t protect against network interception. For banking, use trusted connections or a VPN. Mobile data is safer.'
+      }
+    }
+  ],
+  summary:'You learned: Public Wi-Fi enables Man-in-the-Middle attacks. Always use a VPN. Verify network names. Never perform sensitive activities on unsecured networks.'
+}
+];
+
+// ═══════════════════════════════════════════════════════
+//  GAME ENGINE
+// ═══════════════════════════════════════════════════════
+let gameCanvas, gameCtx, gameState;
+const W=1200, H=600;
+const GROUND_Y=520;
+
+function startGame(){
+  gameCanvas=document.getElementById('gameCanvas');
+  gameCtx=gameCanvas.getContext('2d');
+  initGameState(0);
+  showLevelIntro();
+  requestAnimationFrame(gameLoop);
+}
+
+function initGameState(levelIdx){
+  const lvl=LEVELS[levelIdx];
+  gameState={
+    levelIdx,
+    level:lvl,
+    score: gameState ? gameState.score : 0,
+    lives:3,
+    paused:true,
+    cameraX:0,
+    t:0,
+    cat:{
+      x:120, y:GROUND_Y, vy:0, vx:0,
+      onGround:true, jumping:false,
+      frame:0, dead:false
+    },
+    platforms:[],
+    orbs:[],
+    enemies:[],
+    quizIdx:0,
+    quizTriggered:[],
+    levelWidth:3600,
+    levelComplete:false,
+    particles:[],
+    bgParticles:[],
+    invincTimer:0
+  };
+  buildLevel(gameState);
+  generateBgParticles(gameState);
+}
+
+function generateBgParticles(gs){
+  for(let i=0;i<80;i++){
+    gs.bgParticles.push({
+      x:Math.random()*gs.levelWidth,
+      y:Math.random()*H,
+      r:Math.random()*2+0.5,
+      speed:Math.random()*0.3+0.1,
+      color:['#00f5ff','#9d00ff','#ff00aa'][Math.floor(Math.random()*3)],
+      alpha:Math.random()*0.4+0.1
+    });
+  }
+}
+
+function buildLevel(gs){
+  gs.platforms.push({x:0, y:GROUND_Y, w:gs.levelWidth, h:80, type:'ground'});
+
+  const platData=[
+    [300, GROUND_Y-90, 110],  [520, GROUND_Y-140,100], [720, GROUND_Y-90, 120],
+    [980, GROUND_Y-120,100],  [1200,GROUND_Y-90, 130],
+    [1550,GROUND_Y-110,110],  [1800,GROUND_Y-140,100], [2000,GROUND_Y-90, 120],
+    [2300,GROUND_Y-120,100],  [2550,GROUND_Y-90, 130],
+    [2900,GROUND_Y-110,110],  [3150,GROUND_Y-140,100], [3350,GROUND_Y-90, 120]
+  ];
+  platData.forEach(([x,y,w])=>{
+    gs.platforms.push({x, y, w, h:14, type:'platform'});
+  });
+
+  const orbPositions=[
+    [350,GROUND_Y-110],[570,GROUND_Y-165],[770,GROUND_Y-110],
+    [1030,GROUND_Y-140],[1250,GROUND_Y-110],[200,GROUND_Y-50],
+    [450,GROUND_Y-50],[750,GROUND_Y-50],[1100,GROUND_Y-50],
+    [1600,GROUND_Y-130],[1850,GROUND_Y-165],[2050,GROUND_Y-110],
+    [2350,GROUND_Y-140],[2600,GROUND_Y-110],[2750,GROUND_Y-50],
+    [2950,GROUND_Y-130],[3200,GROUND_Y-165],[3400,GROUND_Y-110],
+    [1400,GROUND_Y-50],[2150,GROUND_Y-50],[3050,GROUND_Y-50]
+  ];
+  orbPositions.forEach(([x,y])=>{
+    gs.orbs.push({x, y, r:10, collected:false, phase:Math.random()*Math.PI*2});
+  });
+
+  const quizzes = gs.level.quizzes;
+  const gateXs  = [850, 2150];
+  quizzes.forEach((q, i)=>{
+    const gx = gateXs[i] || (850 + i*1300);
+    gs.enemies.push({
+      x: gx,
+      y: H/2,
+      hw: 30,
+      hh: H/2,
+      type: 'quizgate',
+      quiz: q,
+      quizAnswered: false,
+      quizOpen: false,
+      alive: true,
+      phase: 0,
+      label: `Q${i+1}`
+    });
+  });
+
+  const hazardPos = [500, 1300, 1600, 2600, 3100];
+  hazardPos.forEach((ex, i)=>{
+    gs.enemies.push({
+      x: ex,
+      y: GROUND_Y - 28,
+      hw: 20,
+      hh: 28,
+      startX: ex,
+      rangeX: 120,
+      vx: i%2===0 ? 1.5 : -1.5,
+      type: i%2===0 ? 'virus' : 'firewall',
+      quiz: null,
+      quizAnswered: true,
+      quizOpen: false,
+      alive: true,
+      phase: Math.random()*Math.PI*2
+    });
+  });
+}
+
+function gameLoop(ts){
+  requestAnimationFrame(gameLoop);
+  if(!gameState) return;
+  gameState.t++;
+  if(!gameState.paused){
+    update(gameState);
+  }
+  render(gameState);
+}
+
+const keys={};
+document.addEventListener('keydown',e=>{
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if(e.code==='KeyP' && document.getElementById('gameScreen').classList.contains('active')){
+    if(gameState && !gameState.levelComplete){
+      if(gameState.paused && document.getElementById('overlay').classList.contains('active')){
+        const overlayCard = document.getElementById('overlayCard').innerHTML;
+        if(overlayCard.includes('PAUSED')) resumeFromPause();
+      } else if(!gameState.paused){
+        togglePause();
+      }
+    }
+    return;
+  }
+  keys[e.code]=true;
+});
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
+window.addEventListener('blur',()=>{ Object.keys(keys).forEach(k=>keys[k]=false); });
+
+function togglePause(){
+  if(!gameState || gameState.levelComplete) return;
+  if(document.getElementById('overlay').classList.contains('active')) return;
+
+  gameState.paused = !gameState.paused;
+
+  if(gameState.paused){
+    document.getElementById('pauseBtn').textContent = '▶ RESUME';
+    showOverlay(`
+      <div class="overlay-level-tag">GAME PAUSED</div>
+      <div class="overlay-title" style="font-size:28px;">⏸ PAUSED</div>
+      <div class="overlay-body" style="text-align:center;margin:20px 0;">
+        The mission is on hold.<br>
+        <span style="color:rgba(255,255,255,0.4);font-size:13px;">Press RESUME or P to continue</span>
+      </div>
+      <div class="score-grid" style="margin-bottom:20px;">
+        <div class="score-item"><div class="score-label">Current Score</div><div class="score-value">${gameState.score}</div></div>
+        <div class="score-item"><div class="score-label">Lives</div><div class="score-value">${gameState.lives}</div></div>
+      </div>
+      <button class="btn-continue" onclick="resumeFromPause()" style="margin-right:12px;">▶ RESUME MISSION</button>
+      <a href="hub.html" class="btn-continue" style="text-decoration:none;display:inline-flex;align-items:center;border-color:var(--magenta);color:var(--magenta);">🏠 MAIN MENU</a>
+    `);
+  } else {
+    document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
+  }
+}
+
+function resumeFromPause(){
+  document.getElementById('overlay').classList.remove('active');
+  gameState.paused = false;
+  document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
+  Object.keys(keys).forEach(k=>keys[k]=false);
+}
+
+const CAT_BODY_H = 50;
+
+function update(gs){
+  const cat=gs.cat;
+  if(cat.dead) return;
+
+  const spd=4.5;
+  const accel = 0.8;
+  const friction = 0.78;
+  if(keys['ArrowLeft']||keys['KeyA'])  cat.vx = Math.max(cat.vx - accel, -spd);
+  else if(keys['ArrowRight']||keys['KeyD']) cat.vx = Math.min(cat.vx + accel, spd);
+  else cat.vx *= friction;
+  if(Math.abs(cat.vx) < 0.1) cat.vx = 0;
+
+  if((keys['Space']||keys['ArrowUp'])&&cat.onGround){
+    cat.vy=-14; cat.onGround=false; cat.jumping=true;
+    spawnParticles(gs,cat.x,cat.y,5,'#00f5ff');
+  }
+
+  cat.vy+=0.55;
+  cat.x+=cat.vx;
+  cat.y+=cat.vy;
+
+  cat.onGround=false;
+  gs.platforms.forEach(p=>{
+    const catLeft  = cat.x - 18;
+    const catRight = cat.x + 18;
+    const platLeft  = p.x;
+    const platRight = p.x + p.w;
+    const platTop   = p.y;
+
+    if(catRight > platLeft && catLeft < platRight){
+      const prevY = cat.y - cat.vy;
+      if(cat.vy >= 0 && prevY <= platTop && cat.y >= platTop - 4){
+        cat.y    = platTop;
+        cat.vy   = 0;
+        cat.onGround = true;
+        cat.jumping  = false;
+      }
+    }
+  });
+
+  cat.x=Math.max(30, Math.min(gs.levelWidth-30, cat.x));
+  if(cat.y > H+50){ loseLife(gs); return; }
+
+  gs.cameraX=Math.max(0, Math.min(gs.levelWidth-W, cat.x-300));
+
+  gs.orbs.forEach(orb=>{
+    if(!orb.collected && Math.hypot(cat.x-orb.x, cat.y-orb.y) < orb.r+20){
+      orb.collected=true;
+      gs.score+=50;
+      updateHUD(gs);
+      spawnParticles(gs,orb.x,orb.y,8,'#ffdd00');
+    }
+  });
+
+  gs.enemies.forEach(en=>{
+    if(!en.alive) return;
+    en.phase+=0.05;
+
+    if(en.type !== 'quizgate' && en.vx !== undefined){
+      en.x += en.vx;
+      if(en.x > en.startX + en.rangeX || en.x < en.startX - en.rangeX){
+        en.vx *= -1;
+      }
+    }
+
+    const catLeft  = cat.x - 18;
+    const catRight = cat.x + 18;
+    const catBot   = cat.y;
+    const catTop   = cat.y - CAT_BODY_H;
+    const enLeft   = en.x - en.hw;
+    const enRight  = en.x + en.hw;
+    const enTop    = en.y - en.hh;
+    const enBot    = en.y + en.hh;
+
+    const overlapsX = catRight > enLeft && catLeft < enRight;
+    const overlapsY = catBot   > enTop  && catTop  < enBot;
+
+    if(overlapsX && overlapsY){
+      if(en.type === 'quizgate'){
+        cat.x  = enLeft - 20;
+        cat.vx = 0;
+        if(!en.quizAnswered && !en.quizOpen){
+          en.quizOpen = true;
+          gs.paused   = true;
+          setTimeout(()=>showQuiz(gs, en.quiz, en), 150);
+        }
+      } else {
+        if(!gs.invincTimer || gs.invincTimer <= 0){
+          gs.invincTimer = 90;
+          loseLife(gs);
+        }
+      }
+    }
+  });
+  if(gs.invincTimer > 0) gs.invincTimer--;
+
+  if(cat.x > gs.levelWidth-100 && !gs.levelComplete){
+    gs.levelComplete=true;
+    gs.paused=true;
+    setTimeout(()=>showLevelComplete(gs),500);
+  }
+
+  gs.particles=gs.particles.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.1;
+    p.life--; return p.life>0;
+  });
+
+  gs.t++;
+}
+
+function loseLife(gs){
+  gs.lives--;
+  gs.cat.y=GROUND_Y;
+  gs.cat.vy=0;
+  gs.cat.vx=0;
+  gs.cat.x=Math.max(150, gs.cameraX+150);
+  updateHUD(gs);
+  if(gs.lives<=0){ gs.paused=true; showGameOver(gs); }
+}
+
+function spawnParticles(gs,x,y,count,color){
+  for(let i=0;i<count;i++){
+    gs.particles.push({
+      x,y,
+      vx:(Math.random()-0.5)*4,
+      vy:Math.random()*-4-1,
+      color,life:25+Math.random()*15,
+      r:Math.random()*3+1
+    });
+  }
+}
+
+function render(gs){
+  const ctx=gameCtx;
+  const cam=gs.cameraX;
+  ctx.clearRect(0,0,W,H);
+
+  // sky — space/nebula gradient per level
+  const skyGrad=ctx.createLinearGradient(0,0,0,H);
+  skyGrad.addColorStop(0, gs.level.bgColor);
+  skyGrad.addColorStop(0.4, '#060810');
+  skyGrad.addColorStop(1,'#040608');
+  ctx.fillStyle=skyGrad;
+  ctx.fillRect(0,0,W,H);
+
+  // subtle nebula clouds in-game canvas
+  const t = gs.t;
+  const nebX1 = ((t*0.02) % W);
+  const ng1 = ctx.createRadialGradient(nebX1, 120, 0, nebX1, 120, 280);
+  ng1.addColorStop(0, `rgba(80,0,180,0.06)`);
+  ng1.addColorStop(1, 'transparent');
+  ctx.fillStyle = ng1; ctx.fillRect(0,0,W,H);
+
+  const ng2 = ctx.createRadialGradient(W-nebX1*0.5, 350, 0, W-nebX1*0.5, 350, 200);
+  ng2.addColorStop(0, `rgba(0,80,200,0.05)`);
+  ng2.addColorStop(1, 'transparent');
+  ctx.fillStyle = ng2; ctx.fillRect(0,0,W,H);
+
+  // stars in game canvas
+  gs.bgParticles.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x-cam*0.15%W, p.y, p.r*0.7, 0, Math.PI*2);
+    ctx.fillStyle=p.color;
+    ctx.globalAlpha=p.alpha*(0.4+Math.sin(gs.t*0.02+p.phase||0)*0.3);
+    ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  drawCity(ctx,cam,gs.level.color,gs.t);
+
+  gs.platforms.forEach(p=>{
+    const px=p.x-cam;
+    if(px>W+100||px+p.w<-100) return;
+    if(p.type==='ground'){
+      const gg=ctx.createLinearGradient(0,p.y,0,p.y+p.h);
+      gg.addColorStop(0,'#0d1a2e');
+      gg.addColorStop(1,'#050a14');
+      ctx.fillStyle=gg;
+      ctx.fillRect(px, p.y, p.w, p.h);
+      ctx.shadowColor=gs.level.color; ctx.shadowBlur=10;
+      ctx.strokeStyle=gs.level.color; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(px,p.y); ctx.lineTo(px+p.w,p.y); ctx.stroke();
+      ctx.shadowBlur=0;
+    } else {
+      roundRect(ctx,px,p.y,p.w,p.h,4);
+      const pgrad=ctx.createLinearGradient(0,p.y,0,p.y+p.h);
+      pgrad.addColorStop(0,'#1a2a4a');
+      pgrad.addColorStop(1,'#0a1428');
+      ctx.fillStyle=pgrad;
+      ctx.fill();
+      ctx.shadowColor=gs.level.color; ctx.shadowBlur=10;
+      ctx.strokeStyle=gs.level.color;
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+      ctx.shadowBlur=0;
+      for(let cx=px+15;cx<px+p.w-10;cx+=20){
+        ctx.beginPath(); ctx.arc(cx,p.y+8,1.5,0,Math.PI*2);
+        ctx.fillStyle=gs.level.color;
+        ctx.globalAlpha=0.5+Math.sin(gs.t*0.05+cx)*0.3;
+        ctx.fill(); ctx.globalAlpha=1;
+      }
+    }
+  });
+
+  gs.orbs.forEach(orb=>{
+    if(orb.collected) return;
+    const ox=orb.x-cam;
+    if(ox<-20||ox>W+20) return;
+    const oy=orb.y+Math.sin(gs.t*0.05+orb.phase)*8;
+    ctx.shadowColor='#ffdd00'; ctx.shadowBlur=20;
+    const og=ctx.createRadialGradient(ox,oy,0,ox,oy,orb.r);
+    og.addColorStop(0,'#ffffff');
+    og.addColorStop(0.4,'#ffdd00');
+    og.addColorStop(1,'rgba(255,180,0,0)');
+    ctx.fillStyle=og;
+    ctx.beginPath(); ctx.arc(ox,oy,orb.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.font='bold 7px Orbitron'; ctx.textAlign='center';
+    ctx.fillText('K',ox,oy+3);
+  });
+
+  gs.enemies.forEach(en=>{
+    if(!en.alive) return;
+    const ex = en.x - cam;
+    if(ex < -80 || ex > W+80) return;
+
+    if(en.type==='quizgate'){
+      const pulse = Math.sin(gs.t*0.08+en.phase)*0.3+0.7;
+      const col   = en.quizAnswered ? '#00ff88' : '#ff4400';
+      const wx    = ex - en.hw;
+      const ww    = en.hw*2;
+
+      ctx.save();
+      ctx.fillStyle = `rgba(${en.quizAnswered?'0,255,136':'255,68,0'},${0.10*pulse})`;
+      ctx.fillRect(wx, 0, ww, H);
+
+      if(!en.quizAnswered){
+        ctx.save();
+        ctx.beginPath(); ctx.rect(wx,0,ww,H); ctx.clip();
+        ctx.strokeStyle=`rgba(255,200,0,0.25)`; ctx.lineWidth=7;
+        for(let s=-H; s<H*2; s+=24){
+          ctx.beginPath();
+          ctx.moveTo(wx+s, 0);
+          ctx.lineTo(wx+s+H, H);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      ctx.shadowColor=col; ctx.shadowBlur=18*pulse;
+      ctx.fillStyle=col;
+      ctx.fillRect(wx,    0, 4, H);
+      ctx.fillRect(wx+ww-4, 0, 4, H);
+      ctx.shadowBlur=0;
+
+      ctx.font=`bold ${en.quizAnswered?24:28}px Orbitron`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = en.quizAnswered ? '#00ff88' : '#ffaa00';
+      ctx.shadowColor=col; ctx.shadowBlur=14;
+      ctx.fillText(en.quizAnswered?'✓':'?', ex, H/2);
+      ctx.shadowBlur=0;
+
+      ctx.font='9px Orbitron'; ctx.textBaseline='top';
+      ctx.fillStyle = en.quizAnswered ? '#00ff88' : '#ffcc00';
+      ctx.fillText(en.quizAnswered ? 'GATE CLEARED' : en.label+' — CYBER CHALLENGE', ex, 12);
+
+      ctx.textBaseline='bottom';
+      ctx.fillText(en.quizAnswered ? '' : 'WALK INTO GATE TO ANSWER', ex, H-8);
+
+      ctx.restore();
+
+    } else {
+      const ey = en.y + Math.sin(gs.t*0.08+en.phase)*3;
+      ctx.save();
+      ctx.shadowColor='#ff3300'; ctx.shadowBlur=14;
+
+      if(en.type==='virus'){
+        ctx.beginPath();
+        for(let a=0;a<6;a++){
+          const ang = a*Math.PI/3 + gs.t*0.05;
+          const r   = en.hw;
+          a===0 ? ctx.moveTo(ex+r*Math.cos(ang), ey+r*Math.sin(ang))
+                : ctx.lineTo(ex+r*Math.cos(ang), ey+r*Math.sin(ang));
+        }
+        ctx.closePath();
+        ctx.fillStyle='rgba(255,40,0,0.25)'; ctx.fill();
+        ctx.strokeStyle='#ff3300'; ctx.lineWidth=2.5; ctx.stroke();
+        ctx.shadowBlur=0;
+        ctx.strokeStyle='rgba(255,100,0,0.7)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(ex-10,ey-10); ctx.lineTo(ex+10,ey+10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex+10,ey-10); ctx.lineTo(ex-10,ey+10); ctx.stroke();
+      } else {
+        ctx.fillStyle='rgba(255,110,0,0.18)';
+        ctx.strokeStyle='#ff6600'; ctx.lineWidth=2.5;
+        ctx.fillRect(ex-en.hw, ey-en.hh, en.hw*2, en.hh*2);
+        ctx.strokeRect(ex-en.hw, ey-en.hh, en.hw*2, en.hh*2);
+        ctx.shadowBlur=0;
+        ctx.strokeStyle='rgba(255,130,0,0.5)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(ex, ey-en.hh); ctx.lineTo(ex, ey+en.hh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex-en.hw, ey); ctx.lineTo(ex+en.hw, ey); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#ff5500'; ctx.font='7px Orbitron';
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText(en.type.toUpperCase(), ex, ey+en.hh+3);
+      ctx.restore();
+    }
+  });
+
+  gs.particles.forEach(p=>{
+    ctx.globalAlpha=p.life/40;
+    ctx.shadowColor=p.color; ctx.shadowBlur=8;
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x-cam,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+  });
+
+  if(!gs.cat.dead){
+    const invinc = gs.invincTimer > 0;
+    if(!invinc || Math.floor(gs.t/5)%2===0){
+      drawCyberCat(ctx, gs.cat.x-cam, gs.cat.y - 17, 1,
+        {idle:gs.cat.vx===0&&gs.cat.onGround, jumping:gs.cat.jumping, running:Math.abs(gs.cat.vx)>1, t:gs.t});
+    }
+  }
+
+  const endX=gs.levelWidth-80-cam;
+  if(endX>0&&endX<W){
+    ctx.shadowColor='#ffdd00'; ctx.shadowBlur=20;
+    ctx.strokeStyle='#ffdd00'; ctx.lineWidth=3;
+    ctx.setLineDash([10,5]);
+    ctx.beginPath(); ctx.moveTo(endX,GROUND_Y); ctx.lineTo(endX,80); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#ffdd00';
+    ctx.font='bold 13px Orbitron'; ctx.textAlign='center';
+    ctx.fillText('LEVEL END',endX,70);
+    ctx.shadowBlur=0;
+  }
+
+  const prog=(gs.cat.x/gs.levelWidth)*W;
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(0,H-6,W,6);
+  ctx.shadowColor=gs.level.color; ctx.shadowBlur=6;
+  ctx.fillStyle=gs.level.color;
+  ctx.fillRect(0,H-6,prog,6);
+  ctx.shadowBlur=0;
+}
+
+function drawCity(ctx,cam,color,t){
+  const buildings=[
+    {x:0,h:180,w:60},{x:80,h:240,w:80},{x:200,h:140,w:50},{x:300,h:200,w:70},
+    {x:420,h:280,w:60},{x:530,h:160,w:55},{x:630,h:220,w:65},{x:750,h:190,w:50},
+    {x:850,h:300,w:70},{x:970,h:170,w:60}
+  ];
+  const parallax=0.2;
+  buildings.forEach(b=>{
+    const bx=((b.x-cam*parallax)%1200+1200)%1200;
+    const by=GROUND_Y+40-b.h;
+    ctx.fillStyle='rgba(8,12,25,0.8)';
+    ctx.strokeStyle=`rgba(${color.startsWith('#00f5ff')?'0,245,255':'157,0,255'},0.15)`;
+    ctx.lineWidth=1;
+    ctx.fillRect(bx,by,b.w,b.h);
+    ctx.strokeRect(bx,by,b.w,b.h);
+    for(let wy=by+10;wy<GROUND_Y+30;wy+=15){
+      for(let wx=bx+5;wx<bx+b.w-5;wx+=15){
+        if(Math.sin(wx*7+wy*3+t*0.01)>0.3){
+          ctx.globalAlpha=0.4+Math.sin(t*0.02+wx+wy)*0.2;
+          ctx.fillStyle=Math.random()>0.98?color:'rgba(255,255,150,0.8)';
+          ctx.fillRect(wx,wy,6,8);
+          ctx.globalAlpha=1;
+        }
+      }
+    }
+  });
+}
+
+function updateHUD(gs){
+  document.getElementById('hudScore').textContent=`SCORE: ${gs.score}`;
+  const hearts=['♥','♥','♥'].map((h,i)=>i<gs.lives?`<span class="life-icon">${h}</span>`:'<span style="opacity:0.2">♥</span>').join(' ');
+  document.getElementById('hudLives').innerHTML=`LIVES: ${hearts}`;
+  document.getElementById('hudLevel').textContent=`QUEST ${gs.levelIdx+1} — ${gs.level.topic.toUpperCase()}`;
+}
+
+function showOverlay(html){
+  const ov=document.getElementById('overlay');
+  document.getElementById('overlayCard').innerHTML=html;
+  ov.classList.add('active');
+}
+
+function hideOverlay(){
+  document.getElementById('overlay').classList.remove('active');
+  gameState.paused=false;
+  const pb=document.getElementById('pauseBtn');
+  if(pb) pb.textContent='⏸ PAUSE';
+  Object.keys(keys).forEach(k=>keys[k]=false);
+}
+
+function applyQuestTheme(levelIdx){
+  const qc = QUEST_COLORS[levelIdx] || QUEST_COLORS[0];
+  const root = document.documentElement;
+  root.style.setProperty('--cyan', qc.primary);
+  root.style.setProperty('--glow-cyan', `0 0 10px ${qc.primary}, 0 0 20px ${qc.primary}, 0 0 40px ${qc.primary}44`);
+  // Update HUD glow
+  document.querySelectorAll('.hud-box').forEach(el=>{
+    el.style.color = qc.primary;
+    el.style.textShadow = `0 0 10px ${qc.primary}`;
+    el.style.borderColor = qc.glow + ',0.3)';
+  });
+  // Update canvas border
+  const canvas = document.getElementById('gameCanvas');
+  if(canvas) canvas.style.borderColor = qc.glow + ',0.3)';
+}
+
+function showLevelIntro(){
+  applyQuestTheme(gameState.levelIdx);
+  const lvl=LEVELS[gameState.levelIdx];
+  showOverlay(`
+    <div class="overlay-level-tag">CYBERSECURITY QUEST ${gameState.levelIdx+1} OF 5</div>
+    <div class="overlay-title">${lvl.intro.title}</div>
+    <div class="overlay-body">${lvl.intro.body}</div>
+    <div style="margin-bottom:12px;font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:2px;">
+      CONTROLS: A/D or ← → to move &nbsp;|&nbsp; SPACE or ↑ to jump &nbsp;|&nbsp; Collect glowing orbs for points
+    </div>
+    <button class="btn-continue" onclick="hideOverlay()">DEPLOY NEON →</button>
+  `);
+  updateHUD(gameState);
+}
+
+function showQuiz(gs, q, gate){
+  const letters=['A','B','C','D'];
+  const choices=q.choices.map((c,i)=>`
+    <button class="choice-btn" onclick="answerQuiz(${gs.levelIdx},${gs.level.quizzes.indexOf(q)},${i},${gs.enemies.indexOf(gate)})" id="choice_${i}">
+      <span class="choice-letter">${letters[i]}</span>${c.text}
+    </button>
+  `).join('');
+
+  showOverlay(`
+    <div class="overlay-level-tag">⚠ CYBER CHALLENGE — ANSWER TO PASS THROUGH THE GATE</div>
+    <div class="overlay-title" style="font-size:16px;">${q.title}</div>
+    <div class="overlay-body" style="margin-bottom:16px;">${q.prompt}</div>
+    <div class="choices">${choices}</div>
+    <div class="feedback-msg" id="feedbackMsg"></div>
+    <button class="btn-continue" id="continueBtn" style="display:none;" onclick="hideOverlay()">GATE UNLOCKED — CONTINUE →</button>
+  `);
+}
+
+function answerQuiz(levelIdx, qIdx, choiceIdx, gateIdx){
+  const q=LEVELS[levelIdx].quizzes[qIdx];
+  const choice=q.choices[choiceIdx];
+  const correct=choice.correct;
+  const fb=document.getElementById('feedbackMsg');
+  const btns=document.querySelectorAll('.choice-btn');
+
+  btns.forEach((b,i)=>{
+    b.style.pointerEvents='none';
+    if(q.choices[i].correct) b.classList.add('correct');
+    else if(i===choiceIdx&&!correct) b.classList.add('wrong');
+  });
+
+  fb.className=`feedback-msg ${correct?'correct':'wrong'}`;
+  fb.style.display='block';
+  fb.innerHTML=correct?`✔ ${q.explanation.correct}`:`✘ ${q.explanation.wrong}`;
+
+  if(correct){
+    gameState.score+=200;
+    spawnParticles(gameState,gameState.cat.x,gameState.cat.y,15,'#00ff88');
+  } else {
+    gameState.score=Math.max(0,gameState.score-50);
+    gameState.lives = Math.max(0, gameState.lives - 1);
+    updateHUD(gameState);
+    if(gameState.lives <= 0){
+      setTimeout(()=>{ showGameOver(gameState); }, 1800);
+    }
+  }
+  updateHUD(gameState);
+
+  if(gateIdx >= 0 && gameState.enemies[gateIdx]){
+    gameState.enemies[gateIdx].quizAnswered = true;
+    gameState.enemies[gateIdx].quizOpen = false;
+    gameState.enemies[gateIdx].alive = false;
+  }
+
+  document.getElementById('continueBtn').style.display='inline-block';
+  document.getElementById('continueBtn').textContent = correct
+    ? '✓ GATE UNLOCKED — CONTINUE →'
+    : '✘ PENALTY APPLIED — CONTINUE →';
+}
+
+function showLevelComplete(gs){
+  const orbs=gs.orbs.filter(o=>o.collected).length;
+  const nextLvlIdx=gs.levelIdx+1;
+
+  if(nextLvlIdx>=LEVELS.length){
+    showGameComplete(gs); return;
+  }
+
+  showOverlay(`
+    <div class="overlay-level-tag">QUEST COMPLETE</div>
+    <div class="overlay-title" style="color:#00ff88;text-shadow:0 0 20px #00ff88;">QUEST ${gs.levelIdx+1} CLEARED</div>
+    <div class="score-grid">
+      <div class="score-item"><div class="score-label">Total Score</div><div class="score-value">${gs.score}</div></div>
+      <div class="score-item"><div class="score-label">Orbs Collected</div><div class="score-value">${orbs}/${gs.orbs.length}</div></div>
+      <div class="score-item"><div class="score-label">Lives Remaining</div><div class="score-value">${gs.lives}</div></div>
+      <div class="score-item"><div class="score-label">Topic Mastered</div><div class="score-value" style="font-size:11px;letter-spacing:0;">${gs.level.topic}</div></div>
+    </div>
+    <div class="overlay-body" style="background:rgba(0,255,136,0.05);border-left:3px solid #00ff88;padding:12px;margin-bottom:20px;">
+      <strong style="color:#00ff88;">📚 DEBRIEF:</strong> ${gs.level.summary}
+    </div>
+    <button class="btn-continue" onclick="nextLevel(${nextLvlIdx})">NEXT QUEST: ${LEVELS[nextLvlIdx].topic.toUpperCase()} →</button>
+  `);
+}
+
+function showGameOver(gs){
+  showOverlay(`
+    <div class="overlay-level-tag">QUEST FAILED</div>
+    <div class="overlay-title" style="color:var(--magenta);text-shadow:var(--glow-magenta);">NEON IS DOWN</div>
+    <div class="overlay-body">The cyber threats overwhelmed the system. But every failure is data. Analyze, adapt, return.<br><br>
+    <strong>Score achieved:</strong> ${gs.score} points</div>
+    <button class="btn-continue" onclick="restartLevel()" style="margin-right:12px;">RETRY MISSION</button>
+    <a href="hub.html" class="btn-continue" style="text-decoration:none;display:inline-flex;align-items:center;border-color:var(--magenta);color:var(--magenta);">🏠 MAIN MENU</a>
+  `);
+}
+
+async function showGameComplete(gs){
+  // Fetch and display the flag from server (never in source)
+  const flagRes = await fetch('/api/flag/1', { credentials:'include' });
+  const flag = flagRes.ok ? (await flagRes.json()).flag : 'FLAG UNAVAILABLE';
+
+  // Submit flag to mark level complete
+  await fetch('/api/verify-flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ level: 1, flag: flag })
+  });
+
+  showOverlay(`
+    <div class="overlay-level-tag">ALL 5 QUESTS COMPLETE — CYBER GUARDIAN ACHIEVED</div>
+    <div class="glitch-title" style="font-size:28px;margin-bottom:16px;">CYBERCAT QUEST COMPLETE!</div>
+    <div class="overlay-body">
+      Outstanding work, Agent <strong>${currentUser}</strong>! You've mastered all 5 cybersecurity domains.<br><br>
+      You are now equipped to defend against phishing, use strong passwords with 2FA, handle devices safely, survive ransomware, and navigate public networks securely.
+    </div>
+    <div class="ctf-box">
+      <div class="ctf-lbl">🚩 CTF Flag Captured</div>
+      <div class="ctf-flag" id="winFlag">COPY: ${flag}</div>
+    </div>
+    <div class="score-grid">
+      <div class="score-item"><div class="score-label">Final Score</div><div class="score-value">${gs.score}</div></div>
+      <div class="score-item"><div class="score-label">Rank</div><div class="score-value" style="font-size:14px;">${gs.score>3000?'CYBER ELITE':gs.score>2000?'DEFENDER':'APPRENTICE'}</div></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;">
+      <button class="btn-continue" onclick="restartFromStart()">⟳ PLAY AGAIN</button>
+      <a href="hub.html" class="btn-continue" style="text-decoration:none;display:inline-flex;align-items:center;border-color:var(--purple);color:var(--purple);">🏠 MAIN MENU</a>
+    </div>
+  `);
+}
+
+function nextLevel(idx){
+  document.getElementById('overlay').classList.remove('active');
+  initGameState(idx);
+  showLevelIntro();
+}
+
+function restartLevel(){
+  document.getElementById('overlay').classList.remove('active');
+  initGameState(gameState.levelIdx);
+  showLevelIntro();
+}
+
+function restartFromStart(){
+  document.getElementById('overlay').classList.remove('active');
+  gameState={};
+  initGameState(0);
+  showLevelIntro();
+}
+
+// ── AUTO-START (user authenticated via cookie) ──
+window.addEventListener('load', async () => {
+  // Verify session via server (cookie is HttpOnly, JS cannot read it)
+  const res = await fetch('/api/me', { credentials:'include' });
+  if (!res.ok) { window.location.href = 'hub.html'; return; }
+  const { user } = await res.json();
+  currentUser = user.username;
+  startGame();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Enter') return;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetShark — Packet Analysis Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;
+  --border:#30363d;--border2:#3d444d;
+  --text:#e6edf3;--text2:#7d8590;--text3:#4d5560;
+  --cyan:#39d0d8;--cyan2:#79c0ff;
+  --green:#3fb950;--green2:#56d364;
+  --yellow:#d29922;--yellow2:#e3b341;
+  --red:#f85149;--red2:#ff7b72;
+  --purple:#bc8cff;--orange:#ffa657;--shark:#58a6ff;
+  --row-attack:rgba(248,81,73,0.1);--row-sel:rgba(88,166,255,0.15);
+  --row-tcp:rgba(57,208,216,0.05);--row-udp:rgba(188,140,255,0.05);
+}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;flex-direction:column;}
+
+.titlebar{display:flex;align-items:center;height:36px;background:#1a1f27;border-bottom:1px solid var(--border);padding:0 12px;flex-shrink:0;}
+.tb-logo{display:flex;align-items:center;gap:8px;font-family:'Press Start 2P',monospace;font-size:8px;color:var(--shark);text-shadow:0 0 10px rgba(88,166,255,.5);margin-right:20px;}
+.tb-menu{display:flex;}
+.tb-mi{padding:0 10px;height:36px;display:flex;align-items:center;color:var(--text2);font-size:11px;cursor:pointer;border-right:1px solid var(--border);transition:.15s;}
+.tb-mi:hover{background:var(--bg3);color:var(--text);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.timer{font-family:'Press Start 2P',monospace;font-size:9px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);color:var(--yellow2);}
+.timer.urgent{color:var(--red);animation:tp .6s infinite;}
+@keyframes tp{0%,100%{opacity:1}50%{opacity:.4}}
+.timer-lbl{font-size:8px;color:var(--text3);}
+.tbback{font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);cursor:pointer;text-decoration:none;transition:.15s;}
+.tbback:hover{color:var(--cyan);border-color:var(--cyan);}
+
+.toolbar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.btn-t{padding:3px 8px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:.15s;white-space:nowrap;}
+.btn-t:hover{background:var(--bg4);color:var(--text);}
+.tsep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+.cap-status{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);padding:3px 10px;background:var(--bg3);border:1px solid var(--border);}
+.cap-dot{width:7px;height:7px;border-radius:50%;background:var(--green2);box-shadow:0 0 6px var(--green2);animation:cb 1s infinite;}
+@keyframes cb{0%,100%{opacity:1}50%{opacity:.3}}
+.pkt-badge{margin-left:auto;padding:2px 8px;background:var(--bg3);border:1px solid var(--border);font-size:10px;color:var(--text2);}
+.pkt-badge span{color:var(--shark);}
+.hint-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);color:var(--yellow2);font-size:9px;cursor:pointer;transition:.15s;}
+.hint-pill:hover{background:rgba(210,153,34,.2);}
+
+.mission-strip{display:flex;align-items:center;gap:14px;padding:6px 12px;background:rgba(248,81,73,.06);border-bottom:1px solid rgba(248,81,73,.25);flex-shrink:0;}
+.mission-icon{font-size:14px;animation:mi 2s infinite;}
+@keyframes mi{0%,100%{opacity:1}50%{opacity:.5}}
+.mission-text{font-size:10px;color:var(--text2);}
+.mission-text b{color:var(--yellow2);}
+.mission-text .clue{color:var(--red2);}
+.mp{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:9px;color:var(--text3);}
+.mp-bg{width:80px;height:5px;background:var(--bg3);border:1px solid var(--border);}
+.mp-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--shark));transition:.3s;}
+
+.filterbar{display:flex;align-items:center;gap:0;padding:4px 10px;background:var(--bg2);border-bottom:2px solid var(--border);flex-shrink:0;}
+.filter-label{padding:4px 8px;background:var(--bg3);border:1px solid var(--border2);border-right:none;color:var(--text2);font-size:10px;white-space:nowrap;}
+.filter-input{flex:1;padding:5px 10px;background:var(--bg);border:1px solid var(--border2);border-right:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:.2s;}
+.filter-input:focus{border-color:var(--shark);box-shadow:0 0 0 2px rgba(88,166,255,.15);}
+.filter-input.valid{border-color:var(--green);background:rgba(63,185,80,.05);}
+.filter-input.invalid{border-color:var(--red);background:rgba(248,81,73,.05);}
+.filter-input::placeholder{color:var(--text3);}
+.btn-clear{padding:5px 8px;background:var(--bg3);border:1px solid var(--border2);border-right:none;color:var(--text3);cursor:pointer;font-size:12px;transition:.15s;}
+.btn-clear:hover{color:var(--red);}
+.btn-submit{padding:5px 14px;background:linear-gradient(135deg,rgba(63,185,80,.2),rgba(63,185,80,.1));border:1px solid var(--green);color:var(--green2);font-family:'Press Start 2P',monospace;font-size:8px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-submit:hover{background:linear-gradient(135deg,rgba(63,185,80,.35),rgba(63,185,80,.2));box-shadow:0 0 14px rgba(63,185,80,.3);}
+.fhints{display:flex;gap:8px;padding:2px 10px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.fchip{padding:1px 7px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:10px;cursor:pointer;transition:.15s;font-family:'JetBrains Mono',monospace;}
+.fchip:hover{color:var(--cyan);border-color:var(--cyan);}
+
+.main-area{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
+.pane-list{flex:1;min-height:0;display:flex;flex-direction:column;border-bottom:4px solid var(--border2);}
+.col-hdrs{display:grid;grid-template-columns:48px 140px 140px 75px 60px 1fr;background:var(--bg3);border-bottom:1px solid var(--border2);flex-shrink:0;}
+.col-h{padding:4px 8px;font-size:10px;color:var(--text2);border-right:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:4px;transition:.15s;white-space:nowrap;overflow:hidden;}
+.col-h:hover{color:var(--text);background:var(--bg4);}
+.pkt-scroll{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;}
+.pkt-scroll::-webkit-scrollbar{width:8px;}
+.pkt-scroll::-webkit-scrollbar-track{background:var(--bg);}
+.pkt-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.prow{display:grid;grid-template-columns:48px 140px 140px 75px 60px 1fr;border-bottom:1px solid rgba(48,54,61,.5);cursor:pointer;transition:background .1s;animation:ra .2s ease;}
+@keyframes ra{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.prow:hover{background:rgba(88,166,255,.07)!important;}
+.prow.selected{background:var(--row-sel)!important;outline:1px solid rgba(88,166,255,.3);}
+.prow.ptcp{background:var(--row-tcp);}
+.prow.pudp{background:var(--row-udp);}
+.prow.pattack{background:var(--row-attack)!important;}
+.prow.pattack .cell{color:var(--red2)!important;}
+.cell{padding:3px 8px;font-size:11px;color:var(--text);border-right:1px solid rgba(48,54,61,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;}
+.cell-no{color:var(--text3);}
+.pproto{font-weight:600;}
+.pproto.tcp{color:var(--cyan2);}
+.pproto.udp{color:var(--purple);}
+.pproto.http{color:var(--green2);}
+.pproto.https{color:var(--green);}
+.pproto.dns{color:var(--orange);}
+.pproto.icmp{color:var(--yellow2);}
+.pproto.syn{color:var(--red2);}
+.pproto.arp{color:var(--text2);}
+.sbadge{display:inline-block;padding:1px 4px;background:rgba(248,81,73,.2);border:1px solid rgba(248,81,73,.5);color:var(--red2);font-size:9px;margin-left:4px;border-radius:1px;}
+
+.bottom-panes{height:240px;min-height:180px;display:flex;flex-shrink:0;}
+.pane-detail{flex:1;border-right:3px solid var(--border2);display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+.pane-hex{width:400px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;}
+.pane-title{padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--border2);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.pane-dot{width:6px;height:6px;border-radius:50%;background:var(--shark);}
+.detail-scroll{flex:1;overflow-y:auto;overflow-x:auto;padding:4px 0;}
+.detail-scroll::-webkit-scrollbar{width:6px;}
+.detail-scroll::-webkit-scrollbar-thumb{background:var(--border2);}
+.ditem{padding:2px 10px;font-size:11px;cursor:pointer;transition:.1s;display:flex;align-items:flex-start;gap:6px;}
+.ditem:hover{background:var(--bg3);}
+.ditem .tog{color:var(--text3);font-size:9px;margin-top:1px;flex-shrink:0;}
+.ditem .dk{color:var(--cyan2);white-space:nowrap;}
+.ditem .dv{color:var(--text);word-break:break-all;}
+.ditem .dv.hi{color:var(--yellow2);}
+.ditem .dv.danger{color:var(--red2);font-weight:600;}
+.dsect{padding:2px 10px 1px;font-size:10px;color:var(--shark);cursor:pointer;border-left:2px solid var(--shark);margin:2px 0;display:flex;align-items:center;gap:6px;}
+.dsect:hover{background:rgba(88,166,255,.05);}
+.dempty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:11px;}
+.hex-area{flex:1;overflow:auto;padding:6px 10px;font-size:10px;line-height:1.8;}
+.hex-area::-webkit-scrollbar{width:6px;}
+.hex-area::-webkit-scrollbar-thumb{background:var(--border2);}
+.hrow{display:flex;gap:12px;}
+.hoffset{color:var(--text3);flex-shrink:0;width:42px;}
+.hbytes{color:var(--cyan2);letter-spacing:1px;flex:1;}
+.hb{display:inline-block;min-width:18px;}
+.hbhi{color:var(--yellow2);}
+.hascii{color:var(--text2);}
+
+.statusbar{display:flex;align-items:center;gap:16px;padding:3px 10px;background:var(--bg3);border-top:1px solid var(--border);flex-shrink:0;font-size:10px;color:var(--text3);}
+.sbitem{display:flex;align-items:center;gap:5px;}
+.sbval{color:var(--text2);}
+.sbalert{margin-left:auto;padding:2px 8px;background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.4);color:var(--red2);font-family:'Press Start 2P',monospace;font-size:7px;animation:ab 1.5s infinite;}
+@keyframes ab{0%,100%{opacity:1}50%{opacity:.6}}
+
+.overlay{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,17,23,.95);backdrop-filter:blur(8px);}
+.ov-win{background:var(--bg2);border:1px solid var(--border2);max-width:600px;width:90%;box-shadow:0 0 60px rgba(0,0,0,.8);}
+.ov-tb{display:flex;align-items:center;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:10px;color:var(--text2);gap:8px;}
+.ov-dot{width:10px;height:10px;border-radius:50%;}
+.ov-body{padding:24px 28px;}
+.ov-title{font-family:'Press Start 2P',monospace;font-size:16px;text-align:center;margin-bottom:10px;line-height:1.6;}
+.ov-sub{text-align:center;color:var(--text2);font-size:11px;line-height:2;margin-bottom:20px;}
+.ctf-box{margin:16px 0;padding:16px 20px;background:rgba(0,0,0,.6);border:2px solid var(--yellow2);box-shadow:0 0 30px rgba(211,153,34,.4),inset 0 0 20px rgba(211,153,34,.06);text-align:center;animation:fp 1.5s ease-in-out infinite;}
+@keyframes fp{0%,100%{box-shadow:0 0 30px rgba(211,153,34,.4)}50%{box-shadow:0 0 60px rgba(211,153,34,.8)}}
+.ctf-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(211,153,34,.6);margin-bottom:8px;letter-spacing:3px;}
+.ctf-flag{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--yellow2);text-shadow:0 0 12px var(--yellow2);letter-spacing:2px;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.sblock{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);text-align:center;}
+.sval{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--cyan);margin-bottom:5px;}
+.slbl{font-size:9px;color:var(--text3);}
+.ov-btns{display:flex;gap:10px;justify-content:center;margin-top:20px;}
+.ov-btn{padding:8px 20px;font-family:'Press Start 2P',monospace;font-size:8px;cursor:pointer;border:none;transition:all .2s;letter-spacing:1px;text-decoration:none;display:inline-flex;align-items:center;}
+.ov-btn.primary{background:var(--green);color:#000;}
+.ov-btn.primary:hover{background:var(--green2);box-shadow:0 0 20px rgba(63,185,80,.5);}
+.ov-btn.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.ov-btn.secondary:hover{color:var(--text);}
+.ov-btn.danger{background:rgba(248,81,73,.15);color:var(--red2);border:1px solid var(--red);}
+.ov-btn.danger:hover{background:rgba(248,81,73,.25);}
+
+.toast{position:fixed;bottom:44px;left:50%;transform:translateX(-50%) translateY(20px);z-index:400;background:rgba(248,81,73,.15);border:1px solid var(--red);padding:8px 20px;font-family:'Press Start 2P',monospace;font-size:8px;color:var(--red2);opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="overlay" id="startOv">
+  <div class="ov-win">
+    <div class="ov-tb">
+      <div class="ov-dot" style="background:#ff5f57;"></div>
+      <div class="ov-dot" style="background:#febc2e;margin-left:4px;"></div>
+      <div class="ov-dot" style="background:#28c840;margin-left:4px;"></div>
+      <span style="margin-left:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--shark);">NETSHARK v2.0 — LEVEL 2</span>
+    </div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:36px;margin-bottom:10px;">🦈</div>
+      <div class="ov-title" style="color:var(--cyan);">NETSHARK<br><span style="font-size:9px;color:var(--text2);">PACKET ANALYSIS CHALLENGE</span></div>
+      <div class="ov-sub">A port scan attack is underway on the network.<br><span style="color:var(--yellow2);">Mission:</span> Identify the attacker and block them.</div>
+      <div style="background:var(--bg3);border:1px solid var(--border);padding:14px;margin-bottom:16px;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--yellow2);margin-bottom:12px;letter-spacing:1px;">MISSION BRIEFING</div>
+        <div style="font-size:10px;line-height:2.2;color:var(--text2);">
+          📡 <b style="color:var(--text);">Scroll the packet list</b> — look for suspicious SYN traffic<br>
+          🔍 <b style="color:var(--text);">Click any packet</b> to see full details in the lower pane<br>
+          ⚠️ Find the IP sending <b style="color:var(--red2);">SYN packets</b> to many different ports<br>
+          🚫 Click <b style="color:var(--green2);">Submit to Firewall</b> within <b style="color:var(--yellow2);">60 seconds</b>
+        </div>
+      </div>
+      <div class="ov-btns">
+        <button class="ov-btn primary" onclick="startGame()">▶ START CAPTURE</button>
+        <a href="hub.html" class="ov-btn secondary">◄ HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div class="overlay" id="winOv" style="display:none">
+  <div class="ov-win">
+    <div class="ov-tb"><div class="ov-dot" style="background:#28c840;"></div><span style="margin-left:10px;font-size:10px;color:var(--green2);">FIREWALL RULE APPLIED SUCCESSFULLY</span></div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:12px;">🛡️</div>
+      <div class="ov-title" style="color:var(--green2);">ATTACKER<br>BLOCKED!</div>
+      <div class="ov-sub" id="winSub"></div>
+      <div class="ctf-box">
+        <div class="ctf-lbl">🚩 CTF FLAG CAPTURED</div>
+        <div class="ctf-flag" id="winFlag">Loading...</div>
+      </div>
+      <div class="sgrid" id="winStats"></div>
+      <div class="ov-btns">
+        <button class="ov-btn primary" onclick="restartGame()">⟳ PLAY AGAIN</button>
+        <a href="hub.html" class="ov-btn secondary">🏠 HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAIL -->
+<div class="overlay" id="failOv" style="display:none">
+  <div class="ov-win">
+    <div class="ov-tb"><div class="ov-dot" style="background:#ff5f57;"></div><span style="margin-left:10px;font-size:10px;color:var(--red2);">TIME EXPIRED — BREACH COMPLETE</span></div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:12px;">💀</div>
+      <div class="ov-title" style="color:var(--red2);">TIME'S UP!</div>
+      <div class="ov-sub">The attacker completed the port scan.<br><span style="color:var(--red2);">Network compromised.</span></div>
+      <div style="background:var(--bg3);border:1px solid rgba(248,81,73,.3);padding:12px;margin:12px 0;font-size:10px;color:var(--text2);line-height:2.2;">
+        Attacker was: <code style="color:var(--red2);" id="failIP"></code>
+      </div>
+      <div class="ov-btns">
+        <button class="ov-btn danger" onclick="restartGame()">⟳ RETRY</button>
+        <a href="hub.html" class="ov-btn secondary">◄ HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ APP ═══ -->
+<div class="titlebar" id="appUI" style="display:none">
+  <div class="tb-logo"><span style="font-size:16px;">🦈</span>NETSHARK</div>
+  <div class="tb-menu">
+    <div class="tb-mi">File</div><div class="tb-mi">Edit</div><div class="tb-mi">View</div>
+    <div class="tb-mi">Capture</div><div class="tb-mi">Analyze</div><div class="tb-mi">Statistics</div>
+  </div>
+  <div class="tb-right">
+    <div style="text-align:right;">
+      <div class="timer-lbl">TIME REMAINING</div>
+      <div class="timer" id="timerEl">01:00</div>
+    </div>
+    <a href="hub.html" class="tbback">◄ HUB</a>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbarEl" style="display:none">
+  <button class="btn-t" style="color:var(--green2);border-color:var(--green);">▶ Capturing</button>
+  <button class="btn-t" onclick="">■ Stop</button>
+  <div class="tsep"></div>
+  <button class="btn-t" onclick="scrollToAttack()">⚡ Jump to Attack</button>
+  <button class="btn-t" onclick="sortBySrc()">⇅ Sort by Src IP</button>
+  <button class="btn-t" onclick="clearFilter()">✕ Clear Filter</button>
+  <div class="tsep"></div>
+  <div class="cap-status"><div class="cap-dot"></div><span>Capturing on eth0</span></div>
+  <div class="pkt-badge">Packets: <span id="pktCount">0</span></div>
+</div>
+
+<div class="mission-strip" id="missionEl" style="display:none">
+  <div class="mission-icon">🎯</div>
+  <div class="mission-text">
+    <b>MISSION:</b> Find the host performing a <span class="clue">SYN port scan</span> — type a filter expression targeting their source IP in the filter bar, then click <b>Submit to Firewall</b>.
+  </div>
+  <div class="mp">
+    <span>SYN pkts: <span id="synCnt" style="color:var(--red2);">0</span></span>
+    <div class="mp-bg"><div class="mp-fill" id="mpFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="filterbar" id="filterbarEl" style="display:none">
+  <div class="filter-label">🔎 Filter:</div>
+  <input type="text" class="filter-input" id="filterInp" placeholder="filter expression…" autocomplete="off" spellcheck="false">
+  <button class="btn-clear" onclick="clearFilter()">✕</button>
+  <button class="btn-submit" onclick="submitFilter()">🚫 SUBMIT TO FIREWALL</button>
+</div>
+
+<div class="fhints" id="fhintsEl" style="display:none">
+  <span style="color:var(--text3);font-size:10px;padding:1px 4px;">Quick:</span>
+  <span class="fchip" onclick="qf('tcp')">tcp</span>
+  <span class="fchip" onclick="qf('udp')">udp</span>
+  <span class="fchip" onclick="qf('http')">http</span>
+  <span class="fchip" onclick="qf('dns')">dns</span>
+  <span class="fchip" onclick="qf('icmp')">icmp</span>
+  <span class="fchip" onclick="clearFilter()">none</span>
+</div>
+
+<div class="main-area" id="mainAreaEl" style="display:none">
+  <div class="pane-list">
+    <div class="col-hdrs">
+      <div class="col-h" onclick="sortPkts('no')">No. ▲</div>
+      <div class="col-h" onclick="sortPkts('src')">Source</div>
+      <div class="col-h" onclick="sortPkts('dst')">Destination</div>
+      <div class="col-h" onclick="sortPkts('proto')">Protocol</div>
+      <div class="col-h" onclick="sortPkts('len')">Length</div>
+      <div class="col-h">Info</div>
+    </div>
+    <div class="pkt-scroll" id="pktList"></div>
+  </div>
+  <div class="bottom-panes">
+    <div class="pane-detail">
+      <div class="pane-title"><div class="pane-dot"></div>Packet Details<span id="detailNum" style="color:var(--text3);margin-left:4px;"></span></div>
+      <div class="detail-scroll" id="detailEl"><div class="dempty">← Click a packet to inspect it</div></div>
+    </div>
+    <div class="pane-hex">
+      <div class="pane-title"><div class="pane-dot" style="background:var(--purple);"></div>Packet Bytes</div>
+      <div class="hex-area" id="hexEl"><div class="dempty" style="height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);">No packet selected</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="statusbar" id="statusbarEl" style="display:none">
+  <div class="sbitem">Packets: <span class="sbval" id="sbTotal">0</span></div>
+  <div class="sbitem">Displayed: <span class="sbval" id="sbDisp">0</span></div>
+  <div class="sbitem">Selected: <span class="sbval" id="sbSel">–</span></div>
+  <div class="sbitem">Time: <span class="sbval" id="sbTime">0.000s</span></div>
+  <div class="sbalert" id="alertEl" style="display:none">⚠ PORT SCAN DETECTED</div>
+</div>
+
+<script>
+const ATTACKER_POOL=['192.168.1.105','10.0.0.47','172.16.0.99','192.168.2.201','10.10.10.88'];
+const NORMAL_SRCS=['192.168.1.1','192.168.1.10','192.168.1.22','10.0.0.2','10.0.0.3','172.20.0.5','8.8.8.8','1.1.1.1','151.101.1.40','93.184.216.34'];
+const NORMAL_DSTS=['192.168.1.100','192.168.1.101','10.0.0.10','10.0.0.20','172.20.0.1','192.168.1.200'];
+const SERVER='192.168.1.100';
+const SCAN_PORTS=[21,22,23,25,53,80,110,135,139,143,443,445,3306,3389,8080,8443,9090,9200,27017,6379];
+
+let G={running:false,attackerIP:'',packets:[],filtered:[],sel:null,ftext:'',timer:60,timerIv:null,spawnIv:null,seq:1,capTime:0,synSeen:0,wrongSub:0,scanIdx:0,sortCol:'no',sortDir:1,won:false};
+
+function rand(a){return a[Math.floor(Math.random()*a.length)];}
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function hex2(n){return n.toString(16).padStart(2,'0');}
+function hex4(n){return n.toString(16).padStart(4,'0');}
+
+function mkNormal(){
+  const protos=['TCP','TCP','TCP','UDP','HTTP','HTTPS','DNS','ICMP','ARP','TCP'];
+  const proto=rand(protos);
+  const src=rand(NORMAL_SRCS);
+  const dst=rand([...NORMAL_DSTS,'8.8.8.8','1.1.1.1']);
+  const sp=ri(49152,65535);
+  let dp=0,info='',flags='',len=0;
+  if(proto==='HTTP'){dp=80;info='GET /index.html HTTP/1.1';len=ri(200,900);}
+  else if(proto==='HTTPS'){dp=443;info='TLSv1.3 Application Data';len=ri(300,1400);}
+  else if(proto==='DNS'){dp=53;info='Standard query A '+rand(['google.com','github.com','cloudflare.com','api.example.com']);len=ri(60,120);}
+  else if(proto==='ICMP'){dp=0;info='Echo (ping) request id=0x'+ri(100,999).toString(16);len=ri(60,98);}
+  else if(proto==='ARP'){dp=0;info='Who has '+dst+'? Tell '+src;len=42;}
+  else if(proto==='UDP'){dp=ri(1,65535);info=sp+' → '+dp+'  Len='+ri(20,200);len=ri(60,200);}
+  else{
+    const tf=rand([{f:'ACK',dp:rand([80,443,8080])},{f:'PSH, ACK',dp:rand([80,443,3306])},{f:'FIN, ACK',dp:rand([80,443])}]);
+    dp=tf.dp;flags=tf.f;
+    info=sp+' → '+dp+'  ['+flags+'] Seq='+ri(1,9999999)+' Ack='+ri(1,9999999)+' Win='+ri(64,65535);
+    len=ri(60,1500);
+  }
+  return{no:G.seq++,time:(G.capTime+=0.001+Math.random()*0.15),src,dst,sp,dp,proto,flags,len,info:info||sp+' → '+dp,isAttack:false,ttl:ri(48,128),win:ri(8192,65535),csum:'0x'+hex4(ri(0,65535)),seq:ri(1,9999999),ack:ri(1,9999999)};
+}
+
+function mkAttack(port){
+  const sp=ri(49152,65535);
+  return{no:G.seq++,time:(G.capTime+=0.001+Math.random()*0.08),src:G.attackerIP,dst:SERVER,sp,dp:port,proto:'TCP',flags:'SYN',len:60,info:sp+' → '+port+'  [SYN] Seq=0 Win=1024 Len=0',isAttack:true,ttl:64,win:1024,csum:'0x'+hex4(ri(0,65535)),seq:0,ack:0};
+}
+
+function protoClass(p){
+  if(p.isAttack)return'attack';
+  if(p.proto==='HTTP')return'http';
+  if(p.proto==='HTTPS')return'https';
+  if(p.proto==='DNS')return'dns';
+  if(p.proto==='ICMP')return'icmp';
+  if(p.proto==='ARP')return'arp';
+  if(p.proto==='UDP')return'udp';
+  if(p.flags==='SYN')return'syn';
+  return'tcp';
+}
+
+function addRow(p){
+  const list=document.getElementById('pktList');
+  const row=document.createElement('div');
+  const pc=protoClass(p);
+  row.className='prow p'+pc;
+  if(G.sel&&G.sel.no===p.no)row.classList.add('selected');
+  row.dataset.no=p.no;
+  const badge=p.isAttack?'<span class="sbadge">SYN SCAN</span>':'';
+  const inf=p.info.length>68?p.info.slice(0,68)+'…':p.info;
+  const synTag=p.flags==='SYN'?'<span style="color:var(--red2);margin-left:3px;">[SYN]</span>':'';
+  row.innerHTML=`<div class="cell cell-no">${p.no}</div><div class="cell">${p.src}</div><div class="cell">${p.dst}</div><div class="cell pproto ${pc}">${p.proto}${synTag}</div><div class="cell">${p.len}</div><div class="cell">${inf}${badge}</div>`;
+  row.addEventListener('click',()=>selPkt(p));
+  list.appendChild(row);
+}
+
+function fullRender(){
+  const list=document.getElementById('pktList');
+  list.innerHTML='';
+  const disp=G.ftext?G.filtered:G.packets;
+  disp.forEach(p=>addRow(p));
+  updCounts();
+}
+
+function updCounts(){
+  const disp=G.ftext?G.filtered:G.packets;
+  document.getElementById('pktCount').textContent=G.packets.length;
+  document.getElementById('sbTotal').textContent=G.packets.length;
+  document.getElementById('sbDisp').textContent=disp.length;
+}
+
+function selPkt(p){
+  G.sel=p;
+  document.querySelectorAll('.prow').forEach(r=>r.classList.toggle('selected',r.dataset.no==p.no));
+  document.getElementById('sbSel').textContent='#'+p.no+' — '+p.src+' → '+p.dst;
+  document.getElementById('detailNum').textContent='— Packet #'+p.no;
+  renderDetail(p);
+  renderHex(p);
+}
+
+function renderDetail(p){
+  const el=document.getElementById('detailEl');
+  const isSyn=p.flags==='SYN';
+  const dc=p.isAttack?'danger':isSyn?'hi':'';
+  let h=`
+    <div class="dsect">▼ Frame ${p.no}: ${p.len} bytes on wire</div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Arrival Time:</span><span class="dv">&nbsp;${p.time.toFixed(6)}s</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Frame Length:</span><span class="dv">&nbsp;${p.len} bytes</span></div>
+    <div class="dsect" style="margin-top:4px;">▼ Internet Protocol Version 4</div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Source Address:</span><span class="dv ${dc}">&nbsp;${p.src}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Destination:</span><span class="dv">&nbsp;${p.dst}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">TTL:</span><span class="dv">&nbsp;${p.ttl}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Protocol:</span><span class="dv">&nbsp;${p.proto}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Checksum:</span><span class="dv">&nbsp;${p.csum}</span></div>`;
+  if(p.proto==='TCP'||p.proto==='HTTP'||p.proto==='HTTPS'){
+    h+=`<div class="dsect" style="margin-top:4px;">▼ Transmission Control Protocol</div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Source Port:</span><span class="dv">&nbsp;${p.sp}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Destination Port:</span><span class="dv ${isSyn?'hi':''}">&nbsp;${p.dp}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Sequence Number:</span><span class="dv">&nbsp;${p.seq}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Acknowledgment:</span><span class="dv">&nbsp;${p.ack}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Flags:</span><span class="dv ${dc}">&nbsp;${p.flags||'ACK'}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Window Size:</span><span class="dv ${p.isAttack?'danger':''}">&nbsp;${p.win}</span></div>`;
+  }
+  if(p.proto==='UDP'){
+    h+=`<div class="dsect" style="margin-top:4px;">▼ User Datagram Protocol</div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Src Port:</span><span class="dv">&nbsp;${p.sp}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Dst Port:</span><span class="dv">&nbsp;${p.dp}</span></div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Length:</span><span class="dv">&nbsp;${p.len}</span></div>`;
+  }
+  if(p.proto==='DNS'){
+    h+=`<div class="dsect" style="margin-top:4px;">▼ Domain Name System</div>
+    <div class="ditem"><span class="tog">○</span><span class="dk">Query:</span><span class="dv">&nbsp;${p.info}</span></div>`;
+  }
+  if(p.isAttack){
+    h+=`<div style="margin:8px 10px;padding:8px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);font-size:10px;color:var(--red2);">
+      ⚠ ANOMALY: SYN-only packet, Window=1024 — characteristic of nmap/port scanner. Source ${p.src} is scanning multiple ports on ${SERVER}.
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderHex(p){
+  const el=document.getElementById('hexEl');
+  el.innerHTML='';
+  const hdr=[0x45,0x00,0x00,p.len&0xff,(p.no>>8)&0xff,p.no&0xff,0x40,0x00,p.ttl,0x06,0x00,0x00,...p.src.split('.').map(Number),...p.dst.split('.').map(Number),(p.sp>>8)&0xff,p.sp&0xff,(p.dp>>8)&0xff,p.dp&0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x50,p.isAttack?0x02:0x18,(p.win>>8)&0xff,p.win&0xff,0x00,0x00,0x00,0x00];
+  const extra=[];
+  for(let i=hdr.length;i<Math.min(p.len,64);i++)extra.push(Math.floor(Math.random()*256));
+  const all=[...hdr,...extra];
+  for(let off=0;off<all.length;off+=16){
+    const rb=all.slice(off,off+16);
+    const d=document.createElement('div');
+    d.className='hrow';
+    const bs=rb.map((b,i)=>`<span class="hb ${off+i<hdr.length?'hbhi':''}">${hex2(b)}</span>`).join(' ');
+    const as=rb.map(b=>(b>=32&&b<127)?String.fromCharCode(b):'.').join('');
+    d.innerHTML=`<span class="hoffset">${off.toString(16).padStart(4,'0')}</span><span class="hbytes">${bs}</span><span class="hascii">  ${as}</span>`;
+    el.appendChild(d);
+  }
+}
+
+function applyFilter(expr){
+  if(!expr.trim()){G.filtered=[];return;}
+  const e=expr.trim().toLowerCase();
+  G.filtered=G.packets.filter(p=>{
+    if(e==='tcp')return['TCP','HTTP','HTTPS'].includes(p.proto);
+    if(e==='udp')return['UDP','DNS'].includes(p.proto);
+    if(e==='http')return p.proto==='HTTP';
+    if(e==='https')return p.proto==='HTTPS';
+    if(e==='dns')return p.proto==='DNS';
+    if(e==='icmp')return p.proto==='ICMP';
+    if(e==='arp')return p.proto==='ARP';
+    if(e==='tcp.flags.syn == 1')return p.flags==='SYN';
+    const sm=e.match(/ip\.src\s*==\s*["']?([\d.]+)["']?/);
+    if(sm)return p.src===sm[1];
+    const dm=e.match(/ip\.dst\s*==\s*["']?([\d.]+)["']?/);
+    if(dm)return p.dst===dm[1];
+    const pm=e.match(/tcp\.port\s*==\s*(\d+)/);
+    if(pm)return p.sp==pm[1]||p.dp==pm[1];
+    return false;
+  });
+}
+
+function qf(f){
+  const inp=document.getElementById('filterInp');
+  inp.value=f;G.ftext=f;applyFilter(f);valInp(f);fullRender();
+}
+
+function clearFilter(){
+  const inp=document.getElementById('filterInp');
+  inp.value='';inp.className='filter-input';
+  G.ftext='';G.filtered=[];fullRender();
+}
+
+function valInp(v){
+  const inp=document.getElementById('filterInp');
+  if(!v.trim()){inp.className='filter-input';return;}
+  const ok=/ip\.(src|dst)\s*==|tcp\.(flags|port)|^(tcp|udp|http|https|dns|icmp|arp)$/.test(v.trim().toLowerCase());
+  inp.className='filter-input '+(ok?'valid':'invalid');
+}
+
+document.getElementById('filterInp').addEventListener('input',e=>{
+  G.ftext=e.target.value;applyFilter(G.ftext);valInp(G.ftext);fullRender();
+});
+document.getElementById('filterInp').addEventListener('keydown',e=>{if(e.key==='Enter')submitFilter();});
+
+function submitFilter(){
+  const v=document.getElementById('filterInp').value.trim();
+  if(!v){showToast('⚠ Enter a filter expression first!');return;}
+  const m=v.match(/ip\.src\s*==\s*["']?([\d.]+)["']?/i);
+  const guess=m?m[1]:null;
+  if(guess===G.attackerIP){winGame();}
+  else{G.wrongSub++;showToast('✗ '+(guess?'IP '+guess+' is not the attacker':'Identify the source IP first'));}
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(20px)';},2800);
+}
+
+function startTimer(){
+  G.timer=60;updTimer();
+  G.timerIv=setInterval(()=>{
+    G.timer--;updTimer();
+    if(G.timer<=10)document.getElementById('timerEl').classList.add('urgent');
+    if(G.timer<=0){clearInterval(G.timerIv);if(!G.won)failGame();}
+  },1000);
+}
+
+function updTimer(){
+  const m=String(Math.floor(G.timer/60)).padStart(2,'0');
+  const s=String(G.timer%60).padStart(2,'0');
+  document.getElementById('timerEl').textContent=m+':'+s;
+}
+
+function spawnBatch(){
+  for(let i=0;i<ri(2,4);i++)G.packets.push(mkNormal());
+  for(let i=0;i<ri(1,2);i++){
+    G.packets.push(mkAttack(SCAN_PORTS[G.scanIdx%SCAN_PORTS.length]));
+    G.scanIdx++;G.synSeen++;
+  }
+  document.getElementById('synCnt').textContent=G.synSeen;
+  document.getElementById('mpFill').style.width=Math.min(100,(G.synSeen/SCAN_PORTS.length)*100)+'%';
+  if(G.synSeen>=3)document.getElementById('alertEl').style.display='block';
+
+  if(G.ftext){applyFilter(G.ftext);}
+
+  // only add new rows if no filter active
+  if(!G.ftext){
+    const list=document.getElementById('pktList');
+    const existing=list.querySelectorAll('.prow').length;
+    G.packets.slice(existing).forEach(p=>addRow(p));
+  } else {
+    fullRender();
+  }
+  updCounts();
+  document.getElementById('sbTime').textContent=G.capTime.toFixed(3)+'s';
+
+  const sc=document.getElementById('pktList');
+  if(sc.scrollTop>sc.scrollHeight-sc.clientHeight-100)sc.scrollTop=sc.scrollHeight;
+}
+
+async function winGame(){
+  G.won=true;clearInterval(G.timerIv);clearInterval(G.spawnIv);
+  document.getElementById('winSub').innerHTML='Attacker IP <code style="color:var(--red2);">'+G.attackerIP+'</code> identified and blocked.<br><span style="color:var(--green2);">Port scan neutralized.</span>';
+  document.getElementById('winStats').innerHTML=`
+    <div class="sblock"><div class="sval">${60-G.timer}s</div><div class="slbl">Time to Block</div></div>
+    <div class="sblock"><div class="sval">${G.synSeen}</div><div class="slbl">SYN Pkts Seen</div></div>
+    <div class="sblock"><div class="sval">${G.packets.length}</div><div class="slbl">Total Packets</div></div>
+    <div class="sblock"><div class="sval">${G.wrongSub}</div><div class="slbl">Wrong Submits</div></div>`;
+  // Fetch flag from server
+  const flagRes = await fetch('/api/flag/2', { credentials:'include' });
+  const flag = flagRes.ok ? (await flagRes.json()).flag : 'FLAG UNAVAILABLE';
+  // Submit flag to mark level complete
+  await fetch('/api/verify-flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ level: 2, flag: flag })
+  });
+  document.getElementById('winFlag').textContent = 'COPY: ' + flag;
+  setTimeout(()=>document.getElementById('winOv').style.display='flex',400);
+}
+
+function failGame(){
+  clearInterval(G.timerIv);clearInterval(G.spawnIv);
+  document.getElementById('failIP').textContent=G.attackerIP;
+  setTimeout(()=>document.getElementById('failOv').style.display='flex',200);
+}
+
+function startGame(){
+  G={running:true,attackerIP:rand(ATTACKER_POOL),packets:[],filtered:[],sel:null,ftext:'',timer:60,timerIv:null,spawnIv:null,seq:1,capTime:0,synSeen:0,wrongSub:0,scanIdx:0,sortCol:'no',sortDir:1,won:false};
+  ['startOv','winOv','failOv'].forEach(id=>document.getElementById(id).style.display='none');
+  const show=['appUI','toolbarEl','missionEl','filterbarEl','fhintsEl','mainAreaEl','statusbarEl'];
+  show.forEach(id=>{const el=document.getElementById(id);el.style.display=id==='appUI'?'flex':id==='mainAreaEl'?'flex':id==='toolbarEl'?'flex':id==='missionEl'?'flex':id==='filterbarEl'?'flex':id==='fhintsEl'?'flex':id==='statusbarEl'?'flex':'block';});
+  document.getElementById('timerEl').classList.remove('urgent');
+  document.getElementById('alertEl').style.display='none';
+  document.getElementById('filterInp').value='';
+  document.getElementById('filterInp').className='filter-input';
+  document.getElementById('pktList').innerHTML='';
+  document.getElementById('detailEl').innerHTML='<div class="dempty">← Click a packet to inspect it</div>';
+  document.getElementById('hexEl').innerHTML='<div class="dempty" style="height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);">No packet selected</div>';
+  for(let i=0;i<8;i++)G.packets.push(mkNormal());
+  G.packets.push(mkAttack(SCAN_PORTS[G.scanIdx++]));G.synSeen=1;
+  G.packets.push(mkAttack(SCAN_PORTS[G.scanIdx++]));G.synSeen=2;
+  for(let i=0;i<4;i++)G.packets.push(mkNormal());
+  fullRender();
+  startTimer();
+  G.spawnIv=setInterval(spawnBatch,1400);
+}
+
+function restartGame(){document.getElementById('winOv').style.display='none';document.getElementById('failOv').style.display='none';startGame();}
+
+function scrollToAttack(){
+  const list=document.getElementById('pktList');
+  const rows=list.querySelectorAll('.prow.pattack');
+  if(rows.length>0){rows[0].scrollIntoView({behavior:'smooth',block:'center'});rows[0].style.background='rgba(248,81,73,0.4)';setTimeout(()=>rows[0].style.background='',900);}
+}
+
+function sortBySrc(){G.packets.sort((a,b)=>a.src.localeCompare(b.src));fullRender();}
+
+function sortPkts(col){
+  if(G.sortCol===col)G.sortDir*=-1;else{G.sortCol=col;G.sortDir=1;}
+  const fn={no:(a,b)=>a.no-b.no,src:(a,b)=>a.src.localeCompare(b.src),dst:(a,b)=>a.dst.localeCompare(b.dst),proto:(a,b)=>a.proto.localeCompare(b.proto),len:(a,b)=>a.len-b.len};
+  if(fn[col]){G.packets.sort((a,b)=>fn[col](a,b)*G.sortDir);fullRender();}
+}
+
+function giveHint(){
+  const hints=[
+    'Hint: Sort by Source IP — a host conducting a scan will appear far more often than any other.',
+    'Hint: Look at which packets are highlighted in red. What do they have in common?',
+    'Hint: A port scan sends the same type of connection request to many different ports from one source.',
+  ];
+  alert(hints[Math.floor(Math.random()*hints.length)]);
+}
+</script>
+</body>
+</html>

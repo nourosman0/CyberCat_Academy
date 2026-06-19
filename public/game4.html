@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StegoVault — Steganography Challenge</title>
+<!-- build-tag: v2.4.1 | deployment-key: cyberhub | compiled: 2026-04-22T03:17:09Z -->
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#030a05;--bg2:#071008;--bg3:#0a1a0c;
+  --green:#00ff41;--green2:#00cc33;--gdim:rgba(0,255,65,0.45);
+  --gdimmer:rgba(0,255,65,0.15);--gfaint:rgba(0,255,65,0.07);
+  --amber:#ffb700;--red:#ff3131;--red2:#ff6060;
+  --cyan:#00f5ff;--purple:#9d00ff;
+  --text:rgba(0,255,65,0.88);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Share Tech Mono',monospace;color:var(--text);}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);}
+
+/* ─────────────────────────────────────────
+   INTRO SCREEN
+───────────────────────────────────────── */
+#introOv{
+  position:fixed;inset:0;z-index:600;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}
+.intro-wrap{width:680px;}
+
+.intro-titlebar{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:rgba(0,20,5,0.98);
+  border:1px solid var(--gdim);border-bottom:none;
+}
+.wdot{width:11px;height:11px;border-radius:50%;}
+.wdot.r{background:#ff5f57;box-shadow:0 0 5px #ff5f5770;}
+.wdot.y{background:#febc2e;box-shadow:0 0 5px #febc2e70;}
+.wdot.g{background:#28c840;box-shadow:0 0 5px #28c84070;}
+.intro-titlebar .ititle{
+  margin-left:10px;font-family:'Share Tech Mono',monospace;
+  font-size:11px;color:var(--gdim);letter-spacing:1px;
+}
+
+.intro-body{
+  background:rgba(3,10,5,0.97);
+  border:1px solid var(--gdim);
+  padding:32px 36px;
+  box-shadow:0 0 60px rgba(0,255,65,0.06);
+  position:relative;overflow:hidden;
+}
+.intro-body::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--green),var(--cyan),var(--green),transparent);
+  opacity:0.6;
+}
+
+.intro-logo{
+  font-family:'Orbitron',monospace;font-size:26px;font-weight:900;
+  color:var(--green);text-shadow:0 0 20px rgba(0,255,65,0.5),0 0 60px rgba(0,255,65,0.15);
+  letter-spacing:5px;margin-bottom:4px;position:relative;z-index:1;
+}
+.intro-sub{
+  font-size:10px;color:var(--gdim);letter-spacing:5px;
+  text-transform:uppercase;margin-bottom:28px;position:relative;z-index:1;
+}
+
+.scenario-block{
+  position:relative;z-index:1;
+  background:rgba(0,0,0,0.5);
+  border-left:3px solid var(--green);
+  padding:16px 20px;margin-bottom:20px;
+  font-size:12px;line-height:2.1;color:var(--text);
+}
+.scenario-block .s-label{
+  font-family:'Orbitron',monospace;font-size:9px;
+  color:var(--amber);letter-spacing:3px;margin-bottom:10px;
+  text-transform:uppercase;
+}
+.scenario-block b{color:rgba(0,255,65,0.9);}
+.scenario-block .red{color:var(--red2);}
+.scenario-block .cyan{color:var(--cyan);}
+.scenario-block code{
+  color:var(--green);background:var(--gfaint);
+  padding:1px 5px;border:1px solid var(--gdimmer);font-size:11px;
+}
+
+
+.intro-btns{display:flex;gap:12px;position:relative;z-index:1;}
+.btn-launch{
+  padding:11px 28px;
+  background:linear-gradient(135deg,rgba(0,255,65,0.14),rgba(0,245,255,0.08));
+  border:1px solid var(--green);color:var(--green);
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
+  letter-spacing:3px;cursor:pointer;transition:all .25s;text-transform:uppercase;
+}
+.btn-launch:hover{
+  background:linear-gradient(135deg,rgba(0,255,65,0.28),rgba(0,245,255,0.14));
+  box-shadow:0 0 24px rgba(0,255,65,0.3);
+}
+.btn-hub{
+  padding:11px 22px;background:transparent;
+  border:1px solid var(--gdimmer);color:var(--gdim);
+  font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
+  cursor:pointer;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;
+}
+.btn-hub:hover{border-color:var(--gdim);color:rgba(0,255,65,0.7);}
+
+/* ─────────────────────────────────────────
+   PASSPHRASE HINT POPUP
+───────────────────────────────────────── */
+#hintModal{
+  position:fixed;inset:0;z-index:450;
+  background:rgba(0,5,2,0.82);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(3px);
+}
+#hintModal.active{display:flex;}
+.hm-panel{
+  width:500px;
+  border:1px solid var(--gdim);
+  background:rgba(3,10,5,0.98);
+  box-shadow:0 0 40px rgba(0,255,65,0.12);
+  position:relative;overflow:hidden;
+}
+.hm-panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+}
+.hm-titlebar{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:rgba(0,20,5,0.95);
+  border-bottom:1px solid var(--gdimmer);
+}
+.hm-titlebar span{font-size:11px;color:var(--gdim);margin-left:8px;letter-spacing:1px;}
+.hm-body{padding:22px 24px;}
+.hm-body .hm-label{
+  font-family:'Orbitron',monospace;font-size:9px;
+  color:var(--cyan);letter-spacing:3px;margin-bottom:12px;
+}
+.hm-hint{
+  background:rgba(0,0,0,0.5);border-left:2px solid var(--cyan);
+  padding:10px 14px;margin-bottom:10px;
+  font-size:12px;line-height:1.9;color:rgba(0,255,65,0.6);
+}
+.hm-hint b{color:rgba(0,255,65,0.9);}
+.hm-hint .hl{color:var(--cyan);}
+.hm-hint .ha{color:var(--amber);}
+.hm-dismiss{
+  margin-top:16px;padding:8px 22px;
+  background:var(--gfaint);border:1px solid var(--gdim);
+  color:var(--green);font-family:'Share Tech Mono',monospace;
+  font-size:12px;cursor:pointer;transition:.2s;
+}
+.hm-dismiss:hover{background:rgba(0,255,65,0.14);box-shadow:0 0 12px rgba(0,255,65,0.2);}
+
+/* ─────────────────────────────────────────
+   PASSPHRASE MODAL
+───────────────────────────────────────── */
+#passModal{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(0,5,2,0.82);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(3px);
+}
+#passModal.active{display:flex;}
+.pm-panel{
+  width:460px;border:1px solid var(--gdim);
+  background:rgba(3,10,5,0.98);
+  box-shadow:0 0 40px rgba(0,255,65,0.1);
+  position:relative;overflow:hidden;
+}
+.pm-panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--green),transparent);
+}
+.pm-titlebar{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:rgba(0,20,5,0.95);
+  border-bottom:1px solid var(--gdimmer);
+}
+.pm-titlebar span{font-size:11px;color:var(--gdim);margin-left:8px;letter-spacing:1px;}
+.pm-body{padding:22px 24px;}
+.pm-body p{font-size:12px;color:rgba(0,255,65,0.55);line-height:1.9;margin-bottom:14px;}
+.pm-body p b{color:rgba(0,255,65,0.85);}
+.pm-row{
+  display:flex;align-items:center;
+  border:1px solid var(--gdim);background:rgba(0,0,0,0.5);
+  margin-bottom:8px;
+}
+.pm-label{
+  padding:9px 12px;color:var(--cyan);font-size:12px;
+  border-right:1px solid var(--gdimmer);white-space:nowrap;
+}
+.pm-input{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:9px 12px;color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:1px;
+  caret-color:var(--green);
+}
+.pm-err{font-size:11px;color:var(--red);min-height:16px;margin-bottom:6px;}
+.pm-attempts{font-size:11px;color:var(--amber);min-height:14px;margin-bottom:12px;}
+.pm-btns{display:flex;gap:8px;align-items:center;}
+.pm-ok{
+  padding:8px 20px;
+  background:linear-gradient(135deg,rgba(0,255,65,.14),rgba(0,245,255,.07));
+  border:1px solid var(--green);color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;transition:.2s;
+}
+.pm-ok:hover{background:rgba(0,255,65,0.24);box-shadow:0 0 12px rgba(0,255,65,0.25);}
+.pm-cancel{
+  padding:8px 18px;background:transparent;
+  border:1px solid var(--gdimmer);color:var(--gdim);
+  font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;transition:.2s;
+}
+.pm-cancel:hover{border-color:var(--red);color:var(--red2);}
+.pm-hint-link{
+  margin-left:auto;font-size:11px;color:var(--gdim);
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;transition:.15s;
+}
+.pm-hint-link:hover{color:var(--cyan);}
+
+/* ─────────────────────────────────────────
+   WIN OVERLAY — evil/red attack theme
+───────────────────────────────────────── */
+#winOv{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(5,0,0,0.94);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+/* red scanlines on win screen */
+#winOv::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,0,0,0.025) 3px,rgba(255,0,0,0.025) 4px);
+}
+.win-panel{
+  width:540px;position:relative;z-index:1;
+  border:1px solid rgba(255,49,49,0.5);
+  background:rgba(8,2,2,0.98);
+  box-shadow:0 0 80px rgba(255,0,0,0.2),inset 0 0 60px rgba(0,0,0,0.5);
+}
+.win-panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--red),#ff6600,var(--red),transparent);
+}
+.win-panel::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--red),#ff6600,var(--red),transparent);
+}
+.win-titlebar{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:rgba(30,5,5,0.95);
+  border-bottom:1px solid rgba(255,49,49,0.25);
+}
+.win-titlebar span{font-size:11px;color:rgba(255,80,80,0.7);margin-left:8px;letter-spacing:1px;}
+.win-body{padding:28px 32px;text-align:center;}
+.win-skull{font-size:44px;margin-bottom:10px;animation:sk 2s ease-in-out infinite;}
+@keyframes sk{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.06) rotate(2deg)}}
+.win-title{
+  font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+  color:var(--red);text-shadow:0 0 20px rgba(255,49,49,0.6),0 0 40px rgba(255,49,49,0.2);
+  letter-spacing:4px;margin-bottom:6px;
+}
+.win-code{
+  font-size:10px;color:rgba(255,80,80,0.4);letter-spacing:4px;margin-bottom:18px;
+}
+.win-sub{font-size:12px;color:rgba(255,100,100,0.55);line-height:2;margin-bottom:20px;}
+.win-sub b{color:rgba(255,130,130,0.85);}
+
+.flag-box{
+  background:rgba(0,0,0,0.7);
+  border:1px solid rgba(255,49,49,0.4);
+  border-top:3px solid var(--red);
+  padding:16px 22px;margin-bottom:16px;
+  box-shadow:0 0 40px rgba(255,0,0,0.15),inset 0 0 20px rgba(255,0,0,0.04);
+  animation:fb 2s ease-in-out infinite;
+}
+@keyframes fb{
+  0%,100%{box-shadow:0 0 30px rgba(255,0,0,0.12)}
+  50%{box-shadow:0 0 60px rgba(255,0,0,0.35),0 0 100px rgba(255,100,0,0.1)}
+}
+.flag-box .flbl{
+  font-size:9px;color:rgba(255,80,80,0.35);
+  letter-spacing:4px;margin-bottom:8px;text-transform:uppercase;
+}
+.flag-box .fval{
+  font-family:'Orbitron',monospace;font-size:14px;
+  color:var(--red);letter-spacing:2px;
+  text-shadow:0 0 12px rgba(255,49,49,0.5);
+}
+
+.exfil-log{
+  background:rgba(0,0,0,0.6);border:1px solid rgba(255,49,49,0.15);
+  padding:12px 16px;margin-bottom:18px;text-align:left;
+}
+.exfil-log .el-title{
+  font-size:9px;color:rgba(255,80,80,0.35);letter-spacing:3px;margin-bottom:8px;
+}
+.exfil-log .el-line{
+  font-size:11px;color:rgba(255,80,80,0.4);line-height:1.9;
+}
+.exfil-log .el-line.ok{color:rgba(255,120,80,0.6);}
+
+.win-stats{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:8px;margin-bottom:18px;
+}
+.wstat{padding:10px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,49,49,0.15);}
+.wstat .sv{
+  font-family:'Orbitron',monospace;font-size:16px;
+  color:rgba(255,100,80,0.8);margin-bottom:3px;
+}
+.wstat .sl{font-size:9px;color:rgba(255,80,80,0.3);letter-spacing:1px;}
+
+.win-btns{display:flex;gap:8px;justify-content:center;}
+.wb-pr{
+  padding:9px 22px;
+  background:rgba(255,49,49,0.1);border:1px solid rgba(255,49,49,0.5);
+  color:rgba(255,100,80,0.8);
+  font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;transition:.2s;
+}
+.wb-pr:hover{background:rgba(255,49,49,0.2);box-shadow:0 0 16px rgba(255,0,0,0.25);}
+.wb-sc{
+  padding:9px 22px;background:transparent;
+  border:1px solid rgba(255,49,49,0.2);color:rgba(255,80,80,0.4);
+  font-family:'Share Tech Mono',monospace;font-size:12px;
+  text-decoration:none;display:inline-flex;align-items:center;cursor:pointer;transition:.2s;
+}
+.wb-sc:hover{border-color:rgba(255,49,49,0.4);color:rgba(255,100,80,0.6);}
+
+/* ─────────────────────────────────────────
+   MAIN APP SHELL
+───────────────────────────────────────── */
+#appShell{
+  display:none;flex-direction:column;height:100vh;
+  background:var(--bg);position:relative;
+}
+
+
+.kali-titlebar{
+  display:flex;align-items:center;height:34px;
+  background:rgba(0,18,4,0.99);
+  border-bottom:1px solid var(--gdim);
+  padding:0 12px;flex-shrink:0;position:relative;z-index:10;
+}
+.kali-dots{display:flex;gap:6px;}
+.kali-title{
+  flex:1;text-align:center;
+  font-family:'Share Tech Mono',monospace;font-size:12px;
+  color:var(--gdim);pointer-events:none;letter-spacing:1px;
+}
+.kali-back{
+  padding:4px 12px;background:transparent;
+  border:1px solid var(--gdimmer);color:var(--gdim);
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  text-decoration:none;transition:.15s;letter-spacing:1px;
+}
+.kali-back:hover{border-color:var(--gdim);color:rgba(0,255,65,0.7);}
+
+/* status bar */
+.status-bar{
+  display:flex;align-items:center;gap:20px;
+  padding:4px 16px;
+  background:rgba(0,12,3,0.9);
+  border-bottom:1px solid var(--gdimmer);
+  font-size:10px;color:rgba(0,255,65,0.35);
+  letter-spacing:1px;flex-shrink:0;position:relative;z-index:10;
+}
+.sb-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 6px var(--green);
+  animation:sdot 1.5s infinite;margin-right:5px;
+}
+@keyframes sdot{0%,100%{opacity:1}50%{opacity:.2}}
+.sb-right{margin-left:auto;color:var(--amber);font-size:10px;}
+
+/* terminal area */
+#termWrap{
+  flex:1;overflow:hidden;display:flex;flex-direction:column;
+  min-height:0;position:relative;z-index:1;
+}
+#termOutput{
+  flex:1;overflow-y:auto;
+  padding:14px 18px 6px;
+  font-size:13px;line-height:1.7;min-height:0;
+}
+#termOutput::-webkit-scrollbar{width:6px;}
+#termOutput::-webkit-scrollbar-track{background:transparent;}
+#termOutput::-webkit-scrollbar-thumb{background:var(--gdimmer);border-radius:2px;}
+
+/* output line types */
+.ln{white-space:pre-wrap;word-break:break-all;}
+.ln-out{color:rgba(0,255,65,0.82);}
+.ln-err{color:var(--red2);}
+.ln-warn{color:var(--amber);}
+.ln-info{color:rgba(0,255,65,0.4);}
+.ln-dim{color:rgba(0,255,65,0.28);}
+.ln-success{color:var(--green);font-weight:700;text-shadow:0 0 6px rgba(0,255,65,0.4);}
+.ln-flag{
+  color:var(--amber);font-weight:700;
+  animation:lfg 1.4s ease-in-out infinite;
+}
+@keyframes lfg{
+  0%,100%{text-shadow:0 0 6px rgba(255,183,0,0.3)}
+  50%{text-shadow:0 0 18px rgba(255,183,0,0.8)}
+}
+.ln-prompt{color:rgba(0,255,65,0.82);}
+.ln-prompt .pu{color:var(--green);}
+.ln-prompt .pp{color:var(--cyan);}
+
+/* input row */
+#inputRow{
+  display:flex;align-items:center;
+  padding:6px 18px 10px;
+  flex-shrink:0;position:relative;z-index:1;
+}
+.ip-prefix{
+  white-space:nowrap;font-size:13px;user-select:none;
+}
+.ip-prefix .pu{color:var(--green);}
+.ip-prefix .pp{color:var(--cyan);}
+.ip-prefix .pd{color:rgba(0,255,65,0.82);}
+#termInput{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--green);font-family:'Share Tech Mono',monospace;
+  font-size:13px;caret-color:var(--green);
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ INTRO ════════════ -->
+<div id="introOv">
+  <div class="intro-wrap">
+    <div class="intro-titlebar">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+      <span class="ititle">root@shadowgrid — ~/ops/stego — bash</span>
+    </div>
+    <div class="intro-body">
+      <div class="intro-logo">STEGOVAULT</div>
+      <div class="intro-sub">STEGANOGRAPHY CHALLENGE // LEVEL 4 // CRYPTIC VAULT</div>
+
+      <div class="scenario-block">
+        <div class="s-label">🛰 Operational Briefing</div>
+        You are a <b>threat actor</b> who has successfully infiltrated <b>CorpNet-47</b>, a
+        corporate intranet spanning five critical nodes.<br><br>
+        Your handlers have obtained a classified internal document — <b>secret_intel.txt</b> —
+        containing the full <span class="red">network topology map</span>: node IPs, roles, and the
+        identity of a <span class="red">compromised VULN_HOST</span> already under your control.<br><br>
+        You must <b>exfiltrate this file covertly</b>. If you send it raw, perimeter DLP scanners
+        will flag it immediately. Your cover story is a routine image upload —
+        <span class="cyan">system_map.jpg</span>.<br><br>
+        Use <b>steghide</b> to embed the intelligence file inside the image.
+        The tool will demand an <b>encryption passphrase</b> — you will need to
+        find it before transmitting.
+      </div>
+
+      <div class="intro-btns">
+        <button class="btn-launch" onclick="launchTerminal()">▶ INITIALISE TERMINAL</button>
+        <a href="hub.html" class="btn-hub">◄ BACK TO HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ HINT POPUP ════════════ -->
+<div id="hintModal">
+  <div class="hm-panel">
+    <div class="hm-titlebar">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+      <span>// INTEL FRAGMENT — passphrase recovery</span>
+    </div>
+    <div class="hm-body">
+      <div class="hm-label">[ INTERCEPTED HINTS ]</div>
+      <div class="hm-hint">
+        The passphrase was generated from <b>two separate data points</b>
+        concatenated together — no spaces, no separators.
+      </div>
+      <div class="hm-hint">
+        <span class="hl">Fragment A</span> — was embedded somewhere in this
+        page's <b>source metadata</b> during deployment. Developers leave things behind.
+      </div>
+      <div class="hm-hint">
+        <span class="hl">Fragment B</span> — is derived from the <b>intel file itself</b>.
+        Look at what's in <span class="ha">secret_intel.txt</span> — the node that's
+        already yours tells you something. Strip the formatting.
+      </div>
+      <button class="hm-dismiss" onclick="dismissHint()">[ CLOSE ]</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PASSPHRASE MODAL ════════════ -->
+<div id="passModal">
+  <div class="pm-panel">
+    <div class="pm-titlebar">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+      <span>steghide — passphrase prompt</span>
+    </div>
+    <div class="pm-body">
+      <p>steghide requires an encryption passphrase.<br>
+      The embedded data will be <b>AES-128 encrypted</b> at rest.</p>
+      <div class="pm-row">
+        <div class="pm-label">Enter passphrase:</div>
+        <input type="password" class="pm-input" id="passInput" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="pm-err" id="passErr"></div>
+      <div class="pm-attempts" id="passAttempts"></div>
+      <div class="pm-btns">
+        <button class="pm-ok" onclick="submitPassphrase()">CONFIRM →</button>
+        <button class="pm-cancel" onclick="cancelPassphrase()">ABORT</button>
+        <span class="pm-hint-link" onclick="showHint()">need a hint?</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ WIN / EXFIL SUCCESS ════════════ -->
+<div id="winOv">
+  <div class="win-panel">
+    <div class="win-titlebar">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+      <span>// EXFILTRATION COMPLETE — OPERATION SHADOWGRID</span>
+    </div>
+    <div class="win-body">
+      <div class="win-skull">☠</div>
+      <div class="win-title">DATA EXFILTRATED</div>
+      <div class="win-code">OPERATION SHADOWGRID — PHASE II — COMPLETE</div>
+      <div class="win-sub">
+        Intel successfully concealed and staged for transmission.<br>
+        <b>DLP scanners bypassed.</b> The image looks clean to all perimeter tools.
+      </div>
+      <div class="flag-box">
+        <div class="flbl">⚑ CTF FLAG CAPTURED</div>
+        <div class="fval" id="winFlag">Loading...</div>
+      </div>
+      <div class="exfil-log">
+        <div class="el-title">[ EXFIL TRANSMISSION LOG ]</div>
+        <div class="el-line ok">→ payload encrypted ........... AES-128-CBC [OK]</div>
+        <div class="el-line ok">→ carrier file modified ........ system_map_stego.jpg [OK]</div>
+        <div class="el-line ok">→ DLP signature check .......... PASSED (no plaintext match)</div>
+        <div class="el-line ok">→ upload to C2 ................. 10.0.0.99:443 [OK]</div>
+        <div class="el-line" style="color:rgba(255,80,80,0.3);">→ trace cleanup ................ scheduled</div>
+      </div>
+      <div class="win-stats" id="winStats"></div>
+      <div class="win-btns">
+        <button class="wb-pr" onclick="resetGame()">⟳ RETRY MISSION</button>
+        <a href="hub.html" class="wb-sc">◄ RETURN TO HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MAIN TERMINAL ════════════ -->
+<div id="appShell">
+  <div class="kali-titlebar">
+    <div class="kali-dots">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+    </div>
+    <div class="kali-title">root@shadowgrid: ~/ops/stego</div>
+    <a href="hub.html" class="kali-back">◄ HUB</a>
+  </div>
+  <div class="status-bar">
+    <span><span class="sb-dot"></span>LIVE SESSION</span>
+    <span>INTERFACE: eth0-vpn</span>
+    <span>ENCRYPTION: AES-256-TLS</span>
+    <span class="sb-right">⚠ OPERATION ACTIVE — MAINTAIN OPSEC</span>
+  </div>
+  <div id="termWrap">
+    <div id="termOutput"></div>
+    <div id="inputRow">
+      <div class="ip-prefix">
+        <span class="pu">root</span><span class="pd">@shadowgrid</span><span class="pd">:</span><span class="pp">~/ops/stego</span><span class="pd"># </span>
+      </div>
+      <input type="text" id="termInput" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// Passphrase: "cyberhub" (from HTML comment above) + "100047" (10.0.0.47 no dots)
+// Full: cyberhub100047
+const CORRECT_PASS = 'cyberhub100047';
+// FLAG is fetched from server on win — not stored in source
+
+let S = {
+  history:[], histIdx:-1,
+  passOpen:false, hintOpen:false,
+  passAttempts:0, embedReady:false,
+  solved:false, cmdCount:0, startTime:null
+};
+
+// ── LAUNCH ──
+function launchTerminal(){
+  document.getElementById('introOv').style.display = 'none';
+  const shell = document.getElementById('appShell');
+  shell.style.display = 'flex';
+  shell.style.flexDirection = 'column';
+  S.startTime = Date.now();
+
+  const boot = [
+    {c:'ln-dim',  t:'Kali GNU/Linux Rolling (shadowgrid-node) tty1'},
+    {c:'ln-dim',  t:''},
+    {c:'ln-info', t:'[ 0.412s] steghide module loaded'},
+    {c:'ln-info', t:'[ 0.614s] workspace mounted: ~/ops/stego'},
+    {c:'ln-info', t:'[ 0.881s] 2 files detected'},
+    {c:'ln-out',  t:''},
+    {c:'ln-out',  t:"root@shadowgrid:~/ops/stego# "},
+  ];
+  let d = 0;
+  boot.forEach((l,i) => {
+    setTimeout(()=>{ if(l.t==='') out('','ln-dim'); else out(l.t,l.c); }, d);
+    d += i < 2 ? 40 : 110;
+  });
+  document.getElementById('termInput').focus();
+}
+
+// ── OUTPUT ──
+function out(text, cls){
+  const el = document.getElementById('termOutput');
+  const d = document.createElement('div');
+  d.className = 'ln ' + (cls || 'ln-out');
+  d.innerHTML = text;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function outPrompt(cmd){
+  const el = document.getElementById('termOutput');
+  const d = document.createElement('div');
+  d.className = 'ln ln-prompt';
+  d.innerHTML = `<span class="pu">root</span>@shadowgrid:<span class="pp">~/ops/stego</span># ${esc(cmd)}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── INPUT ──
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inp = document.getElementById('termInput');
+  inp.addEventListener('keydown', onKey);
+  document.getElementById('appShell').addEventListener('click', ()=>{
+    if(!S.passOpen && !S.hintOpen) inp.focus();
+  });
+});
+
+function focusInput(){ setTimeout(()=>document.getElementById('termInput').focus(), 80); }
+
+function onKey(e){
+  const inp = e.target;
+  if(e.key === 'Enter'){
+    const cmd = inp.value;
+    inp.value = '';
+    if(cmd.trim()){ S.history.unshift(cmd); S.histIdx = -1; S.cmdCount++; }
+    runCmd(cmd);
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    if(S.histIdx < S.history.length-1){ S.histIdx++; inp.value = S.history[S.histIdx]; }
+  } else if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    if(S.histIdx > 0){ S.histIdx--; inp.value = S.history[S.histIdx]; }
+    else { S.histIdx = -1; inp.value = ''; }
+  } else if(e.key === 'Tab'){
+    e.preventDefault(); doTab(inp);
+  } else if(e.ctrlKey && e.key === 'l'){
+    e.preventDefault(); document.getElementById('termOutput').innerHTML = '';
+  }
+}
+
+function doTab(inp){
+  const words = inp.value.split(' ');
+  const last  = words[words.length-1];
+  const pool  = ['secret_intel.txt','system_map.jpg','ls','cat','help','clear','steghide','pwd','whoami','id'];
+  const hits  = pool.filter(x => x.startsWith(last));
+  if(hits.length === 1){ words[words.length-1] = hits[0]; inp.value = words.join(' '); }
+  else if(hits.length > 1){ out(''); out(hits.join('    '), 'ln-info'); }
+}
+
+// ── COMMANDS ──
+function runCmd(raw){
+  const cmd   = raw.trim();
+  outPrompt(cmd);
+  if(!cmd) return;
+  const parts = cmd.split(/\s+/);
+  const base  = parts[0].toLowerCase();
+  if(base==='ls')       { doLs(parts); return; }
+  if(base==='cat')      { doCat(parts); return; }
+  if(base==='help')     { doHelp(); return; }
+  if(base==='clear')    { document.getElementById('termOutput').innerHTML=''; return; }
+  if(base==='pwd')      { out('/root/ops/stego'); return; }
+  if(base==='whoami')   { out('root'); return; }
+  if(base==='id')       { out('uid=0(root) gid=0(root) groups=0(root)'); return; }
+  if(base==='uname')    { out('Linux shadowgrid-node 5.15.0-kali3-amd64 #1 SMP Debian x86_64 GNU/Linux'); return; }
+  if(base==='steghide') { doSteghide(parts); return; }
+  if(base==='exit')     { out('Use the HUB button to exit.', 'ln-warn'); return; }
+  out(`bash: ${esc(base)}: command not found`, 'ln-err');
+}
+
+function doLs(parts){
+  const long = parts.some(p => /^-.*l/.test(p));
+  out('');
+  if(long){
+    out('-rw------- 1 root root  2143 Apr 22 03:11 secret_intel.txt');
+    out('-rw------- 1 root root 49152 Apr 22 03:14 system_map.jpg');
+  } else {
+    out('secret_intel.txt  system_map.jpg');
+  }
+  out('');
+}
+
+function doCat(parts){
+  if(parts.length < 2){
+    out('cat: missing file operand', 'ln-err');
+    out("Try 'cat --help' for more information.",'ln-info');
+    return;
+  }
+  const f = parts[1];
+  if(f === 'secret_intel.txt'){
+    out('');
+    out('──────────────────────────────────────────────', 'ln-dim');
+    out('  CLASSIFIED // CORPNET-47 TOPOLOGY REPORT', 'ln-warn');
+    out('  OPERATION: SHADOWGRID — PHASE II', 'ln-warn');
+    out('  SOURCE: internal SIEM exfil — 2026-04-22', 'ln-dim');
+    out('──────────────────────────────────────────────', 'ln-dim');
+    out('');
+    out('NODE_01 | 10.0.0.4   | GATEWAY   | Active        | perimeter router');
+    out('NODE_02 | 10.0.0.11  | FIREWALL  | Active        | palo-alto PAN-OS 11.x');
+    out('NODE_03 | 10.0.0.22  | DNS_SRV   | Active        | unbound resolver');
+    out('NODE_04 | 10.0.0.47  | VULN_HOST | *** COMPROMISED *** | SMB exploit (CVE-2025-0142)', 'ln-err');
+    out('NODE_05 | 10.0.0.99  | C2_SERVER | Suspected     | beacon interval 60s', 'ln-warn');
+    out('');
+    out('LATERAL MOVEMENT: credential stuffing via LSASS dump on NODE_04.', 'ln-dim');
+    out('PERSISTENCE: scheduled task, registry autorun on NODE_04.', 'ln-dim');
+    out('NEXT STAGE: pivot to NODE_05 once exfil confirmed.', 'ln-dim');
+    out('');
+    out('>> EMBED AND EXFILTRATE BEFORE NEXT LOG ROTATION (04:00 UTC) <<', 'ln-warn');
+    out('');
+    out('──────────────────────────────────────────────', 'ln-dim');
+    out('');
+  } else if(f === 'system_map.jpg'){
+    out('cat: system_map.jpg: binary file (JFIF image data)', 'ln-warn');
+    out("Use 'steghide' to embed data into this file.", 'ln-info');
+  } else {
+    out(`cat: ${esc(f)}: No such file or directory`, 'ln-err');
+  }
+}
+
+function doHelp(){
+  out('');
+  out('available commands:', 'ln-dim');
+  out('');
+  out('  ls [-la]                               list directory contents');
+  out('  cat <file>                             print file to stdout');
+  out('  pwd / whoami / id / uname              system info');
+  out('  clear                                  clear screen');
+  out('  steghide --help                        steghide usage reference');
+  out('  steghide embed -cf <img> -ef <file>    embed file into image');
+  out('  steghide info <file>                   inspect stego file');
+  out('');
+}
+
+function doSteghide(parts){
+  const sub = parts[1];
+
+  if(sub === '--help' || sub === '-h'){
+    out('');
+    out('steghide version 0.5.1');
+    out('');
+    out('the first argument must be a command:');
+    out('');
+    out('  embed, --embed, -e        embed data into a cover file');
+    out('  extract, --extract, -x    extract data from a stego file');
+    out('  info, --info, -i          display information about a file');
+    out('  version, --version        display version number');
+    out('  help, --help              display this help');
+    out('');
+    out('embedding options:');
+    out('  -cf, --coverfile <fn>    select cover-file (carrier image)');
+    out('  -ef, --embedfile <fn>    select file to embed');
+    out('  -sf, --stegofile <fn>    select stego output file');
+    out('  -p,  --passphrase <s>    specify passphrase');
+    out('  -e,  --encryption <a>    encryption algorithm (default: AES-128)');
+    out('  -z,  --compress <n>      compression level 1-9');
+    out('  -K,  --nochecksum        do not embed checksum');
+    out('  -f,  --force             overwrite existing files');
+    out('');
+    out('example:');
+    out('  steghide embed -cf cover.jpg -ef secret.txt');
+    out('');
+    return;
+  }
+
+  if(!sub){
+    out('');
+    out('steghide version 0.5.1');
+    out("type 'steghide --help' for usage.", 'ln-info');
+    out('');
+    return;
+  }
+
+  const subcmd = sub.toLowerCase();
+
+  if(subcmd === 'info'){
+    const target = parts[2];
+    if(!target){ out('steghide: no file specified.', 'ln-err'); return; }
+    if(target === 'system_map.jpg'){
+      out('');
+      out('"system_map.jpg":');
+      out('  format: jpeg');
+      out('  capacity: 5.6 KB');
+      out('  (no embedded data detected)');
+      out('');
+    } else {
+      out(`steghide: error: could not open file '${esc(target)}'.`, 'ln-err');
+    }
+    return;
+  }
+
+  if(subcmd === 'extract'){
+    out("steghide: error: -sf option is missing.", 'ln-err');
+    out("usage: steghide extract -sf <stego_file>", 'ln-info');
+    return;
+  }
+
+  if(subcmd !== 'embed'){
+    out(`steghide: error: unknown command '${esc(sub)}'.`, 'ln-err');
+    out("type 'steghide --help' for usage.", 'ln-info');
+    return;
+  }
+
+  // parse -cf and -ef
+  const cfIdx = parts.indexOf('-cf');
+  const efIdx = parts.indexOf('-ef');
+  const cfVal = cfIdx !== -1 ? parts[cfIdx+1] : null;
+  const efVal = efIdx !== -1 ? parts[efIdx+1] : null;
+
+  if(cfIdx === -1 && efIdx === -1){
+    out('');
+    out('steghide: error: missing arguments -cf and -ef.', 'ln-err');
+    out('');
+    out('usage: steghide embed -cf <cover_file> -ef <embed_file>');
+    out('  -cf   carrier image       (e.g. system_map.jpg)');
+    out('  -ef   file to embed       (e.g. secret_intel.txt)');
+    out('');
+    return;
+  }
+  if(cfIdx === -1){
+    out('steghide: error: -cf flag missing (no cover file specified).', 'ln-err');
+    out('usage: steghide embed -cf <cover_file> -ef <embed_file>', 'ln-info');
+    return;
+  }
+  if(efIdx === -1){
+    out('steghide: error: -ef flag missing (no embed file specified).', 'ln-err');
+    out('usage: steghide embed -cf <cover_file> -ef <embed_file>', 'ln-info');
+    return;
+  }
+  if(!cfVal || cfVal.startsWith('-')){
+    out('steghide: error: -cf requires a filename argument.', 'ln-err');
+    return;
+  }
+  if(!efVal || efVal.startsWith('-')){
+    out('steghide: error: -ef requires a filename argument.', 'ln-err');
+    return;
+  }
+  if(cfVal !== 'system_map.jpg'){
+    out(`steghide: error: could not open cover file '${esc(cfVal)}'.`, 'ln-err');
+    out('available cover file: system_map.jpg', 'ln-info');
+    return;
+  }
+  if(efVal !== 'secret_intel.txt'){
+    out(`steghide: error: could not open embed file '${esc(efVal)}'.`, 'ln-err');
+    out('available embed file: secret_intel.txt', 'ln-info');
+    return;
+  }
+
+  // CORRECT COMMAND — trigger passphrase
+  out('');
+  out('reading cover file "system_map.jpg"... done');
+  out('reading embed file "secret_intel.txt"... done');
+  out('');
+  S.embedReady = true;
+  setTimeout(()=> openPassModal(), 350);
+}
+
+// ── PASSPHRASE MODAL ──
+function openPassModal(){
+  S.passOpen = true;
+  const m = document.getElementById('passModal');
+  m.classList.add('active');
+  const inp = document.getElementById('passInput');
+  inp.value = '';
+  document.getElementById('passErr').textContent = '';
+  document.getElementById('passAttempts').textContent =
+    S.passAttempts > 0 ? `${3 - S.passAttempts} attempt(s) remaining` : '';
+  const h = e => {
+    if(e.key === 'Enter') submitPassphrase();
+    if(e.key === 'Escape') cancelPassphrase();
+  };
+  inp._h = h;
+  inp.addEventListener('keydown', h);
+  setTimeout(()=> inp.focus(), 80);
+}
+
+function closePassModal(){
+  S.passOpen = false;
+  document.getElementById('passModal').classList.remove('active');
+  const inp = document.getElementById('passInput');
+  if(inp._h){ inp.removeEventListener('keydown', inp._h); inp._h = null; }
+}
+
+function cancelPassphrase(){
+  closePassModal();
+  out('');
+  out('Enter passphrase for "system_map.jpg":');
+  out('steghide: operation cancelled.', 'ln-warn');
+  out('');
+  S.embedReady = false;
+  focusInput();
+}
+
+function submitPassphrase(){
+  const val   = document.getElementById('passInput').value;
+  const errEl = document.getElementById('passErr');
+  const attEl = document.getElementById('passAttempts');
+  if(!val){ errEl.textContent = 'Passphrase cannot be empty.'; return; }
+
+  if(val === CORRECT_PASS){
+    closePassModal();
+    runSuccess();
+  } else {
+    S.passAttempts++;
+    if(S.passAttempts >= 3){
+      errEl.textContent = 'Authentication failed. Operation locked.';
+      setTimeout(()=>{
+        closePassModal();
+        out('');
+        out('Enter passphrase for "system_map.jpg":');
+        out('steghide: could not embed: authentication failure after 3 attempts.', 'ln-err');
+        out('');
+        S.embedReady = false;
+        S.passAttempts = 0;
+        focusInput();
+      }, 1400);
+    } else {
+      errEl.textContent = 'Wrong passphrase.';
+      attEl.textContent = `${3 - S.passAttempts} attempt(s) remaining`;
+      document.getElementById('passInput').value = '';
+      document.getElementById('passInput').focus();
+    }
+  }
+}
+
+// ── HINT ──
+function showHint(){
+  S.hintOpen = true;
+  document.getElementById('passModal').classList.remove('active');
+  document.getElementById('hintModal').classList.add('active');
+  document.getElementById('passInput').blur();
+}
+
+function dismissHint(){
+  S.hintOpen = false;
+  document.getElementById('hintModal').classList.remove('active');
+  document.getElementById('passModal').classList.add('active');
+  setTimeout(()=> document.getElementById('passInput').focus(), 80);
+}
+
+// ── SUCCESS SEQUENCE ──
+function runSuccess(){
+  const lines = [
+    {c:'ln-out',     t:'Enter passphrase for "system_map.jpg":'},
+    {c:'ln-out',     t:''},
+    {c:'ln-info',    t:'encrypting payload with AES-128-CBC...'},
+    {c:'ln-info',    t:'compressing data (level 6)...'},
+    {c:'ln-info',    t:'writing stego-data to cover file...'},
+    {c:'ln-out',     t:''},
+    {c:'ln-success', t:'[✓] "secret_intel.txt" embedded in "system_map.jpg"'},
+    {c:'ln-out',     t:''},
+    {c:'ln-warn',    t:'output file: system_map_stego.jpg'},
+    {c:'ln-dim',     t:'file size delta: +2.1 KB — imperceptible to visual analysis'},
+    {c:'ln-dim',     t:'DLP signature: CLEAN — no plaintext keywords detected'},
+    {c:'ln-out',     t:''},
+    {c:'ln-success', t:'[SUCCESS] Data Embedded. Flag Captured.'},
+    {c:'ln-out',     t:''},
+  ];
+  let delay = 0;
+  lines.forEach((l, i) => {
+    setTimeout(()=>{
+      out(l.t, l.c);
+      if(i === lines.length-1){ S.solved = true; setTimeout(showWin, 1200); }
+    }, delay);
+    delay += l.c === 'ln-info' ? 340 : 110;
+  });
+}
+
+async function showWin(){
+  const elapsed = Math.round((Date.now() - S.startTime) / 1000);
+  const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+  const s = String(elapsed%60).padStart(2,'0');
+  document.getElementById('winStats').innerHTML = `
+    <div class="wstat"><div class="sv">${m}:${s}</div><div class="sl">OP TIME</div></div>
+    <div class="wstat"><div class="sv">${S.cmdCount}</div><div class="sl">COMMANDS</div></div>
+    <div class="wstat"><div class="sv">${S.passAttempts}</div><div class="sl">FAILED PASSES</div></div>`;
+  // Fetch flag from server
+  const flagRes = await fetch('/api/flag/4', { credentials:'include' });
+  const flag = flagRes.ok ? (await flagRes.json()).flag : 'FLAG UNAVAILABLE';
+  // Submit flag to mark level complete
+  await fetch('/api/verify-flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ level: 4, flag: flag })
+  });
+  document.getElementById('winFlag').textContent = 'COPY: ' + flag;
+  document.getElementById('winOv').style.display = 'flex';
+}
+
+function resetGame(){
+  document.getElementById('winOv').style.display = 'none';
+  document.getElementById('termOutput').innerHTML = '';
+  S = {history:[],histIdx:-1,passOpen:false,hintOpen:false,
+       passAttempts:0,embedReady:false,solved:false,cmdCount:0,startTime:Date.now()};
+  out('');
+  out("Type 'help' for available commands.", 'ln-info');
+  out('');
+  focusInput();
+}
+</script>
+</body>
+</html>

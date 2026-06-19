@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Neural Core — Incident Response Simulation</title>
+<!-- backup-key: SHADOWFALL_7734 | deployment: neural-core | compiled: 2026-04-27T00:00:00Z -->
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  /* -- ALERT STATE (muted amber / dark slate) -- */
+  --bg:#09090d;--bg2:#0e0e14;--bg3:#13131a;--bg4:#181820;
+  --accent:#c8922a;--accent2:#d4a84b;--accent-dim:rgba(200,146,42,0.32);
+  --accent-faint:rgba(200,146,42,0.07);
+  --text:rgba(210,175,100,0.88);--text2:rgba(180,145,80,0.52);--text3:rgba(160,125,60,0.28);
+  --ok:#c8922a;--warn:#a07830;
+  --border:rgba(200,146,42,0.22);--border2:rgba(200,146,42,0.12);
+}
+/* RESOLVED state — applied to body */
+body.resolved{
+  --bg:#05090e;--bg2:#080d14;--bg3:#0b1019;--bg4:#0e1420;
+  --accent:#4a9eba;--accent2:#5bb8d4;--accent-dim:rgba(74,158,186,0.32);
+  --accent-faint:rgba(74,158,186,0.07);
+  --text:rgba(140,200,220,0.88);--text2:rgba(100,170,195,0.52);--text3:rgba(70,130,160,0.28);
+  --ok:#4ecf88;--warn:#4a9eba;
+  --border:rgba(74,158,186,0.25);--border2:rgba(74,158,186,0.14);
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Share Tech Mono',monospace;color:var(--text);display:flex;flex-direction:column;transition:background 1s,color 1s;}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);}
+
+/* ═══════════════════════════════
+   INTRO OVERLAY
+═══════════════════════════════ */
+#introOv{position:fixed;inset:0;z-index:700;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.intro-wrap{width:700px;}
+.intro-titlebar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(12,10,3,0.98);border:1px solid var(--accent-dim);border-bottom:none;}
+.wdot{width:11px;height:11px;border-radius:50%;}
+.wdot.r{background:#ff5f57;box-shadow:0 0 5px #ff5f5780;}
+.wdot.y{background:#febc2e;box-shadow:0 0 5px #febc2e80;}
+.wdot.g{background:#28c840;box-shadow:0 0 5px #28c84080;}
+.intro-titlebar .ititle{margin-left:10px;font-size:11px;color:var(--accent-dim);letter-spacing:1px;}
+.intro-body{background:rgba(9,9,13,0.98);border:1px solid var(--accent-dim);padding:32px 36px;box-shadow:0 0 80px rgba(200,146,42,0.06);position:relative;overflow:hidden;}
+.intro-body::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),#ff6600,var(--accent),transparent);opacity:0.7;}
+
+/* glitch title */
+.intro-logo{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--accent);
+  text-shadow:0 0 20px rgba(255,26,26,0.6),0 0 60px rgba(255,26,26,0.15);
+  letter-spacing:4px;margin-bottom:4px;position:relative;z-index:1;
+  animation:glitch 4s infinite;}
+@keyframes glitch{
+  0%,88%,100%{clip-path:none;transform:none;}
+  90%{clip-path:polygon(0 15%,100% 15%,100% 30%,0 30%);transform:translateX(-4px);color:#ff6600;}
+  92%{clip-path:polygon(0 60%,100% 60%,100% 75%,0 75%);transform:translateX(4px);}
+  94%{clip-path:none;transform:none;}
+}
+.intro-sub{font-size:9px;color:var(--accent-dim);letter-spacing:5px;text-transform:uppercase;margin-bottom:28px;position:relative;z-index:1;}
+.alert-banner{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(200,146,42,0.07);border:1px solid rgba(200,146,42,0.35);margin-bottom:20px;animation:alertPulse 2s ease-in-out infinite;}
+@keyframes alertPulse{0%,100%{box-shadow:0 0 8px rgba(200,146,42,0.1)}50%{box-shadow:0 0 22px rgba(200,146,42,0.28)}}
+.alert-icon{font-size:22px;animation:iconFlash 0.8s infinite;}
+@keyframes iconFlash{0%,100%{opacity:1}50%{opacity:0.3}}
+.alert-text{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;line-height:1.8;}
+.scenario-block{position:relative;z-index:1;background:rgba(0,0,0,0.5);border-left:3px solid var(--accent);padding:16px 20px;margin-bottom:20px;font-size:12px;line-height:2.1;color:var(--text);}
+.scenario-block .s-label{font-family:'Orbitron',monospace;font-size:9px;color:var(--warn);letter-spacing:3px;margin-bottom:10px;}
+.scenario-block b{color:rgba(255,130,80,0.95);}
+.scenario-block .phase-tag{display:inline-block;padding:1px 7px;background:rgba(200,146,42,0.1);border:1px solid rgba(200,146,42,0.35);font-family:'Orbitron',monospace;font-size:8px;color:var(--accent);letter-spacing:2px;margin-right:6px;}
+.intro-btns{display:flex;gap:12px;position:relative;z-index:1;}
+.btn-launch{padding:11px 28px;background:linear-gradient(135deg,rgba(255,26,26,0.14),rgba(255,100,0,0.08));border:1px solid var(--accent);color:var(--accent);font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all .25s;text-transform:uppercase;}
+.btn-launch:hover{background:rgba(255,26,26,0.28);box-shadow:0 0 24px rgba(255,0,0,0.4);}
+.btn-hub{padding:11px 22px;background:transparent;border:1px solid var(--accent-dim);color:var(--text2);font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-hub:hover{border-color:var(--text2);color:var(--text);}
+
+/* ═══════════════════════════════
+   WIN OVERLAY
+═══════════════════════════════ */
+#winOv{position:fixed;inset:0;z-index:800;background:rgba(2,5,10,0.96);display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#winOv::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(74,158,186,0.015) 3px,rgba(74,158,186,0.015) 4px);}
+.win-panel{width:600px;position:relative;z-index:1;border:1px solid rgba(74,158,186,0.4);background:rgba(3,6,12,0.98);box-shadow:0 0 80px rgba(74,158,186,0.12);}
+.win-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#4a9eba,#7b68c8,#4a9eba,transparent);}
+.win-tb{display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(3,8,18,0.95);border-bottom:1px solid rgba(74,158,186,0.15);}
+.win-tb span{font-size:11px;color:rgba(74,158,186,0.55);margin-left:8px;letter-spacing:1px;}
+.win-body{padding:30px 34px;text-align:center;}
+.win-shield{font-size:52px;margin-bottom:14px;animation:shieldPulse 1.8s ease-in-out infinite;filter:drop-shadow(0 0 16px rgba(74,158,186,0.5));}
+@keyframes shieldPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.win-title{font-family:'Orbitron',monospace;font-size:24px;font-weight:900;color:#4a9eba;text-shadow:0 0 16px rgba(74,158,186,0.45);letter-spacing:4px;margin-bottom:6px;}
+.win-code{font-size:9px;color:rgba(74,158,186,0.3);letter-spacing:4px;margin-bottom:16px;}
+.win-sub{font-size:11px;color:rgba(74,158,186,0.45);line-height:2.2;margin-bottom:20px;}
+.win-sub b{color:rgba(74,158,186,0.75);}
+.ctf-box{margin:16px 0;padding:16px 20px;background:rgba(0,0,0,0.65);border:2px solid #c8922a;box-shadow:0 0 30px rgba(200,146,42,0.25),inset 0 0 18px rgba(200,146,42,0.04);text-align:center;animation:ctfPulse 2s ease-in-out infinite;}
+@keyframes ctfPulse{0%,100%{box-shadow:0 0 30px rgba(200,146,42,0.22)}50%{box-shadow:0 0 60px rgba(200,146,42,0.5)}}
+.ctf-lbl{font-size:9px;color:rgba(200,146,42,0.45);letter-spacing:4px;margin-bottom:8px;}
+.ctf-flag{font-family:'Orbitron',monospace;font-size:15px;color:#c8922a;text-shadow:0 0 12px rgba(200,146,42,0.6);letter-spacing:2px;}
+.win-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0;}
+.wstat{padding:10px;background:rgba(74,158,186,0.04);border:1px solid rgba(74,158,186,0.12);}
+.wstat .sv{font-family:'Orbitron',monospace;font-size:16px;color:#4a9eba;margin-bottom:4px;}
+.wstat .sl{font-size:8px;color:rgba(74,158,186,0.28);letter-spacing:1px;}
+.win-btns{display:flex;gap:10px;justify-content:center;}
+.win-btn-pr{padding:9px 22px;background:rgba(74,158,186,0.08);border:1px solid rgba(74,158,186,0.4);color:#4a9eba;font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;transition:.2s;}
+.win-btn-pr:hover{background:rgba(74,158,186,0.16);box-shadow:0 0 14px rgba(74,158,186,0.2);}
+.win-btn-sc{padding:9px 22px;background:transparent;border:1px solid rgba(74,158,186,0.18);color:rgba(74,158,186,0.4);font-family:'Share Tech Mono',monospace;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer;transition:.2s;}
+.win-btn-sc:hover{border-color:rgba(74,158,186,0.38);color:rgba(74,158,186,0.7);}
+
+/* ═══════════════════════════════
+   APP SHELL
+═══════════════════════════════ */
+#appShell{display:none;flex-direction:column;height:100vh;background:var(--bg);transition:background 1s;}
+
+/* top alert bar */
+.alert-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  height:38px;padding:0 14px;flex-shrink:0;
+  background:rgba(30,22,5,0.55);
+  border-bottom:2px solid var(--accent);
+  animation:topbarPulse 1s ease-in-out infinite;
+  transition:background 1s,border-color 1s,animation 1s;
+}
+body.resolved .alert-topbar{background:rgba(0,20,35,0.6);animation:none;border-color:var(--accent);}
+@keyframes topbarPulse{0%,100%{background:rgba(30,22,5,0.5)}50%{background:rgba(55,38,8,0.75)}}
+.atb-left{display:flex;align-items:center;gap:10px;}
+.atb-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:dotFlash 0.7s infinite;}
+body.resolved .atb-dot{animation:none;background:var(--accent);box-shadow:0 0 10px var(--accent);}
+@keyframes dotFlash{0%,100%{opacity:1}50%{opacity:0.2}}
+.atb-msg{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--accent);transition:color 1s;}
+.atb-right{display:flex;align-items:center;gap:16px;font-size:9px;color:var(--text2);}
+.atb-timer{font-family:'Orbitron',monospace;font-size:10px;color:var(--warn);letter-spacing:1px;}
+.atb-back{padding:3px 12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;text-decoration:none;transition:.15s;}
+.atb-back:hover{border-color:var(--accent);color:var(--accent);}
+
+/* layout: left control + right terminal */
+.main-layout{flex:1;display:grid;grid-template-columns:320px 1fr;overflow:hidden;min-height:0;}
+
+/* ── LEFT PANEL: CONTROL ROOM ── */
+.control-panel{
+  border-right:2px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  background:var(--bg2);transition:background 1s,border-color 1s;
+}
+.control-panel::-webkit-scrollbar{width:5px;}
+.control-panel::-webkit-scrollbar-thumb{background:var(--border);}
+.cp-section{border-bottom:1px solid var(--border2);padding:12px 14px;transition:border-color 1s;}
+.cp-section-title{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;transition:color 1s;}
+.cp-section-title::before{content:'';display:inline-block;width:4px;height:14px;background:var(--accent);flex-shrink:0;transition:background 1s;}
+
+/* threat level gauge */
+.threat-gauge{height:12px;background:var(--bg4);border:1px solid var(--border);overflow:hidden;margin-bottom:6px;transition:background 1s,border-color 1s;}
+.threat-fill{height:100%;transition:width 0.8s,background 1s;background:linear-gradient(90deg,var(--accent),#ff6600);}
+.threat-label{font-size:9px;color:var(--text2);transition:color 1s;}
+
+/* system vitals */
+.vital-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:10px;}
+.vital-name{color:var(--text2);transition:color 1s;}
+.vital-bar{flex:1;height:6px;background:var(--bg4);border:1px solid var(--border2);margin:0 8px;overflow:hidden;transition:background 1s,border-color 1s;}
+.vital-fill{height:100%;transition:width 0.6s,background 1s;}
+.vital-val{color:var(--text);min-width:36px;text-align:right;transition:color 1s;}
+
+/* phase tracker */
+.phase-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);font-size:10px;transition:border-color 1s;}
+.phase-item:last-child{border-bottom:none;}
+.phase-num{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:8px;flex-shrink:0;transition:border-color 1s,background 1s,color 1s;color:var(--text3);}
+.phase-num.done{background:rgba(0,255,136,0.15);border-color:#00ff88;color:#00ff88;}
+.phase-num.active{background:var(--accent-faint);border-color:var(--accent);color:var(--accent);animation:phasePulse 1.2s infinite;}
+@keyframes phasePulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px var(--accent)}}
+.phase-text{flex:1;color:var(--text2);transition:color 1s;}
+.phase-text.done{color:#00ff88;}
+.phase-text.active{color:var(--accent);}
+.phase-tag-sm{font-size:8px;padding:1px 5px;border:1px solid;border-radius:1px;}
+.phase-tag-sm.done{border-color:#00ff88;color:#00ff88;}
+.phase-tag-sm.active{border-color:var(--accent);color:var(--accent);}
+.phase-tag-sm.locked{border-color:var(--text3);color:var(--text3);}
+
+/* hint box */
+.hint-box{background:rgba(160,120,40,0.06);border:1px solid rgba(160,120,40,0.22);padding:10px 12px;font-size:10px;line-height:1.9;color:rgba(190,155,90,0.65);transition:all 1s;}
+body.resolved .hint-box{background:rgba(74,158,186,0.05);border-color:rgba(74,158,186,0.22);color:rgba(140,200,220,0.55);}
+.hint-box b{color:rgba(200,160,80,0.9);}
+body.resolved .hint-box b{color:rgba(140,200,220,0.85);}
+
+/* network map mini */
+.net-map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px 0;}
+.net-node{padding:5px 4px;background:var(--bg4);border:1px solid var(--border2);text-align:center;font-size:8px;line-height:1.8;transition:all 1s;position:relative;}
+.net-node.compromised{border-color:var(--accent);background:rgba(200,146,42,0.06);animation:nodeAlert 1.8s infinite;}
+body.resolved .net-node.compromised{border-color:#4ecf88;background:rgba(78,207,136,0.05);animation:none;}
+@keyframes nodeAlert{0%,100%{opacity:1}50%{opacity:0.6}}
+.net-node-icon{font-size:14px;display:block;margin-bottom:2px;}
+.net-node-label{color:var(--text2);transition:color 1s;}
+.net-node.compromised .net-node-label{color:var(--accent);transition:color 1s;}
+body.resolved .net-node.compromised .net-node-label{color:#4ecf88;}
+
+/* log feed */
+.log-feed{font-size:9px;line-height:2;max-height:130px;overflow-y:auto;}
+.log-feed::-webkit-scrollbar{width:4px;}
+.log-feed::-webkit-scrollbar-thumb{background:var(--border);}
+.log-line{color:var(--text3);transition:color 1s;}
+.log-line.critical{color:var(--accent);animation:logFlash 1.5s infinite;}
+@keyframes logFlash{0%,100%{opacity:1}50%{opacity:0.5}}
+.log-line.warn{color:var(--warn);}
+.log-line.ok{color:#00ff88;animation:none;}
+
+/* ── RIGHT PANEL: TERMINAL ── */
+.terminal-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);transition:background 1s;}
+.term-titlebar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(10,8,2,0.85);border-bottom:1px solid var(--border);flex-shrink:0;transition:background 1s,border-color 1s;}
+body.resolved .term-titlebar{background:rgba(0,6,14,0.8);}
+.term-title-dots{display:flex;gap:5px;}
+.ttd{width:9px;height:9px;border-radius:50%;}
+.term-title-text{font-size:11px;color:var(--text2);margin-left:8px;letter-spacing:1px;transition:color 1s;}
+.term-output{flex:1;overflow-y:auto;padding:12px 16px;min-height:0;font-size:12px;line-height:1.75;}
+.term-output::-webkit-scrollbar{width:6px;}
+.term-output::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* output line types */
+.ln{white-space:pre-wrap;word-break:break-all;}
+.ln-out{color:var(--text);}
+.ln-err{color:#ff4444;}
+.ln-warn{color:var(--warn);}
+.ln-info{color:var(--text2);}
+.ln-dim{color:var(--text3);}
+.ln-success{color:#4ecf88;font-weight:700;text-shadow:0 0 8px rgba(78,207,136,0.4);}
+.ln-flag{color:#d4a84b;font-weight:700;animation:flagGlow 1.4s ease-in-out infinite;}
+@keyframes flagGlow{0%,100%{text-shadow:0 0 6px rgba(212,168,75,0.3)}50%{text-shadow:0 0 20px rgba(212,168,75,0.8)}}
+.ln-prompt{color:var(--text);}
+.ln-prompt .pu{color:var(--accent);}
+.ln-prompt .pp{color:rgba(180,145,80,0.75);}
+body.resolved .ln-prompt .pu{color:#4a9eba;}
+body.resolved .ln-prompt .pp{color:#5bb8d4;}
+/* attack lines — same tone as normal text, no highlight by default */
+.ln-attack{color:var(--text);}
+
+/* input row */
+.term-input-row{display:flex;align-items:center;padding:6px 16px 10px;flex-shrink:0;border-top:1px solid var(--border2);background:rgba(0,0,0,0.3);transition:border-color 1s,background 1s;}
+.ip-prefix{white-space:nowrap;font-size:12px;user-select:none;}
+.ip-prefix .pu{color:var(--accent);transition:color 1s;}
+body.resolved .ip-prefix .pu{color:#4a9eba;}
+.ip-prefix .pp{color:rgba(180,145,80,0.75);transition:color 1s;}
+body.resolved .ip-prefix .pp{color:#5bb8d4;}
+.ip-prefix .pd{color:var(--text);transition:color 1s;}
+#termInput{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;caret-color:var(--accent);transition:color 1s,caret-color 1s;}
+body.resolved #termInput{caret-color:#00f5ff;}
+
+/* status bar */
+.statusbar{display:flex;align-items:center;gap:16px;padding:3px 14px;background:var(--bg3);border-top:1px solid var(--border2);flex-shrink:0;font-size:9px;color:var(--text3);transition:background 1s,border-color 1s,color 1s;}
+.sb-alert{margin-left:auto;padding:2px 8px;background:var(--accent-faint);border:1px solid var(--accent-dim);color:var(--accent);font-family:'Orbitron',monospace;font-size:7px;animation:ab 1.5s infinite;transition:all 1s;}
+body.resolved .sb-alert{animation:none;background:rgba(78,207,136,0.06);border-color:#4ecf88;color:#4ecf88;}
+@keyframes ab{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* toast */
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(20px);z-index:900;background:var(--accent-faint);border:1px solid var(--accent-dim);padding:8px 20px;font-family:'Orbitron',monospace;font-size:8px;color:var(--accent);opacity:0;transition:all .35s;pointer-events:none;white-space:nowrap;letter-spacing:1px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{background:rgba(0,255,136,0.08);border-color:#00ff88;color:#00ff88;}
+
+/* flash effect on resolution */
+.resolution-flash{position:fixed;inset:0;z-index:600;pointer-events:none;background:rgba(0,245,255,0.2);opacity:0;animation:resFlash 1.2s ease-out forwards;}
+@keyframes resFlash{0%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- ════════ INTRO ════════ -->
+<div id="introOv">
+  <div class="intro-wrap">
+    <div class="intro-titlebar">
+      <div class="wdot r"></div><div class="wdot y"></div><div class="wdot g"></div>
+      <span class="ititle">root@neural-core — incident-response — LEVEL 5 BOSS</span>
+    </div>
+    <div class="intro-body">
+      <div class="intro-logo">THE NEURAL CORE</div>
+      <div class="intro-sub">INCIDENT RESPONSE SIMULATION // LEVEL 5 // BOSS MISSION</div>
+      <div class="alert-banner">
+        <div class="alert-icon">🚨</div>
+        <div class="alert-text">CRITICAL BREACH DETECTED — NEURAL CORE SYSTEMS COMPROMISED<br>ATTACKER ACTIVE — UNAUTHORISED PROCESS RUNNING — RESPOND IMMEDIATELY</div>
+      </div>
+      <div class="scenario-block">
+        <div class="s-label">⚡ Mission Briefing — IR-7734</div>
+        An intruder has breached <b>NEURAL-CORE-01</b>, the central AI orchestration server.
+        A malicious process is actively exfiltrating data. Perform three phases of incident response:<br><br>
+        <span class="phase-tag">PHASE 1</span><b>Discovery</b> — Enumerate running processes and identify the intruder's implant. Terminate it cleanly.<br>
+        <span class="phase-tag">PHASE 2</span><b>Investigation</b> — Search the auth log to establish the attacker's entry point: first login time and origin IP.<br>
+        <span class="phase-tag">PHASE 3</span><b>Recovery</b> — Locate the offline backup decryption key and invoke the recovery script to restore the core.
+      </div>
+      <div class="intro-btns">
+        <button class="btn-launch" onclick="launchApp()">▶ INITIATE RESPONSE</button>
+        <a href="hub.html" class="btn-hub">◄ BACK TO HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ WIN ════════ -->
+<div id="winOv">
+  <div class="win-panel">
+    <div class="win-tb">
+      <div class="wdot" style="background:#28c840;box-shadow:0 0 6px #28c840;"></div>
+      <span>// NEURAL CORE RESTORED — INCIDENT RESOLVED</span>
+    </div>
+    <div class="win-body">
+      <div class="win-shield">🛡</div>
+      <div class="win-title">CORE SECURED</div>
+      <div class="win-code">INCIDENT RESPONSE — IR-7734 — RESOLVED</div>
+      <div class="win-sub">Outstanding work, Analyst. The intruder has been expelled.<br>
+        <b>All three IR phases completed successfully.</b><br>
+        The Neural Core is back online and fully encrypted.
+      </div>
+      <div class="ctf-box">
+        <div class="ctf-lbl">🚩 MASTER CTF FLAG CAPTURED</div>
+        <div class="ctf-flag" id="winFlag">Loading...</div>
+      </div>
+      <div class="win-stats" id="winStats"></div>
+      <div class="win-btns">
+        <button class="win-btn-pr" onclick="resetGame()">⟳ REPLAY MISSION</button>
+        <a href="hub.html" class="win-btn-sc">🏠 RETURN TO HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TOAST ════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════ APP SHELL ════════ -->
+<div id="appShell">
+
+  <!-- alert topbar -->
+  <div class="alert-topbar" id="alertTopbar">
+    <div class="atb-left">
+      <div class="atb-dot" id="atbDot"></div>
+      <div class="atb-msg" id="atbMsg">⚠ CRITICAL BREACH — NEURAL CORE COMPROMISED — RESPOND NOW</div>
+    </div>
+    <div class="atb-right">
+      <div class="atb-timer" id="timerEl">00:00</div>
+      <a href="hub.html" class="atb-back">◄ HUB</a>
+    </div>
+  </div>
+
+  <!-- main layout -->
+  <div class="main-layout">
+
+    <!-- ── CONTROL PANEL ── -->
+    <div class="control-panel" id="controlPanel">
+
+      <!-- threat level -->
+      <div class="cp-section">
+        <div class="cp-section-title">THREAT LEVEL</div>
+        <div class="threat-gauge"><div class="threat-fill" id="threatFill" style="width:92%"></div></div>
+        <div class="threat-label" id="threatLabel">CRITICAL — ACTIVE BREACH</div>
+      </div>
+
+      <!-- phase tracker -->
+      <div class="cp-section">
+        <div class="cp-section-title">IR PHASES</div>
+        <div class="phase-item" id="phaseItem1">
+          <div class="phase-num active" id="phaseNum1">1</div>
+          <div class="phase-text active" id="phaseText1">DISCOVERY: Kill rogue process</div>
+          <div class="phase-tag-sm active" id="phaseTag1">ACTIVE</div>
+        </div>
+        <div class="phase-item" id="phaseItem2">
+          <div class="phase-num" id="phaseNum2">2</div>
+          <div class="phase-text" id="phaseText2">INVESTIGATION: Trace the intrusion</div>
+          <div class="phase-tag-sm locked" id="phaseTag2">LOCKED</div>
+        </div>
+        <div class="phase-item" id="phaseItem3">
+          <div class="phase-num" id="phaseNum3">3</div>
+          <div class="phase-text" id="phaseText3">RECOVERY: Decrypt the core</div>
+          <div class="phase-tag-sm locked" id="phaseTag3">LOCKED</div>
+        </div>
+      </div>
+
+      <!-- system vitals -->
+      <div class="cp-section">
+        <div class="cp-section-title">SYSTEM VITALS</div>
+        <div class="vital-row">
+          <div class="vital-name">CPU</div>
+          <div class="vital-bar"><div class="vital-fill" id="vCPU" style="width:94%;background:var(--accent)"></div></div>
+          <div class="vital-val" id="vCPUv">94%</div>
+        </div>
+        <div class="vital-row">
+          <div class="vital-name">MEM</div>
+          <div class="vital-bar"><div class="vital-fill" id="vMEM" style="width:88%;background:var(--warn)"></div></div>
+          <div class="vital-val" id="vMEMv">88%</div>
+        </div>
+        <div class="vital-row">
+          <div class="vital-name">NET</div>
+          <div class="vital-bar"><div class="vital-fill" id="vNET" style="width:100%;background:var(--accent)"></div></div>
+          <div class="vital-val" id="vNETv">MAX</div>
+        </div>
+        <div class="vital-row">
+          <div class="vital-name">DISK</div>
+          <div class="vital-bar"><div class="vital-fill" id="vDISK" style="width:60%;background:#ff8800"></div></div>
+          <div class="vital-val" id="vDISKv">60%</div>
+        </div>
+      </div>
+
+      <!-- network map -->
+      <div class="cp-section">
+        <div class="cp-section-title">NETWORK MAP</div>
+        <div class="net-map">
+          <div class="net-node"><span class="net-node-icon">🖥</span><div class="net-node-label">GATEWAY<br>10.0.0.1</div></div>
+          <div class="net-node compromised" id="coreNode"><span class="net-node-icon">🧠</span><div class="net-node-label">NEURAL CORE<br>10.0.0.50</div></div>
+          <div class="net-node"><span class="net-node-icon">🛡</span><div class="net-node-label">FIREWALL<br>10.0.0.2</div></div>
+          <div class="net-node"><span class="net-node-icon">💾</span><div class="net-node-label">BACKUP SRV<br>10.0.0.30</div></div>
+          <div class="net-node compromised" id="attackNode"><span class="net-node-icon">💀</span><div class="net-node-label">ATTACKER<br>UNKNOWN</div></div>
+          <div class="net-node"><span class="net-node-icon">📡</span><div class="net-node-label">DNS SRV<br>10.0.0.5</div></div>
+        </div>
+      </div>
+
+      <!-- hint box -->
+      <div class="cp-section">
+        <div class="cp-section-title">ANALYST NOTES</div>
+        <div class="hint-box" id="hintBox">
+          <b>Phase 1 — Discovery</b><br>
+          Something is consuming abnormal CPU. Standard system daemons don't behave that way. Look carefully at process names — attackers often disguise implants as near-identical copies of known binaries. One extra character is all it takes.<br><br>
+          Once identified, a forceful termination signal is needed — the process is ignoring soft signals.
+        </div>
+      </div>
+
+      <!-- live log feed -->
+      <div class="cp-section">
+        <div class="cp-section-title">LIVE EVENT LOG</div>
+        <div class="log-feed" id="logFeed"></div>
+      </div>
+
+    </div>
+
+    <!-- ── TERMINAL ── -->
+    <div class="terminal-panel">
+      <div class="term-titlebar">
+        <div class="term-title-dots">
+          <div class="ttd" style="background:#ff5f57;box-shadow:0 0 4px #ff5f5770;"></div>
+          <div class="ttd" style="background:#febc2e;box-shadow:0 0 4px #febc2e70;"></div>
+          <div class="ttd" style="background:#28c840;box-shadow:0 0 4px #28c84070;"></div>
+        </div>
+        <div class="term-title-text" id="termTitle">root@neural-core — INCIDENT RESPONSE — BREACH ACTIVE</div>
+      </div>
+      <div class="term-output" id="termOutput"></div>
+      <div class="term-input-row">
+        <div class="ip-prefix">
+          <span class="pu">root</span><span class="pd">@neural-core</span><span class="pd">:</span><span class="pp">~/incident-response</span><span class="pd"># </span>
+        </div>
+        <input type="text" id="termInput" autocomplete="off" spellcheck="false" placeholder="">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- status bar -->
+  <div class="statusbar" id="statusBar">
+    <span id="sbPhase">Phase: <span style="color:var(--accent)">DISCOVERY</span></span>
+    <span id="sbProc">Processes: monitoring</span>
+    <span id="sbConn">Connections: <span style="color:var(--accent)">BREACH ACTIVE</span></span>
+    <div class="sb-alert" id="sbAlert">⚠ CORE COMPROMISED</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── GAME DATA ──
+const ROGUE_PROC = { name:'sshdd', pid:3847, cpu:'14.2', mem:'3.6', tty:'?', stat:'S' };
+const ATTACKER_IP = '185.220.101.47';
+const ATTACKER_FIRST_LOGIN = '2026-04-27T03:14:22Z';
+const BACKUP_KEY = 'SHADOWFALL_7734';   // hidden in HTML comment above
+// FLAG is fetched from server on win — not stored in source
+
+// normal processes for ps aux
+const NORMAL_PROCS = [
+  {pid:1,    name:'systemd',     cpu:'0.0', mem:'0.1', tty:'?', stat:'Ss'},
+  {pid:2,    name:'kthreadd',    cpu:'0.0', mem:'0.0', tty:'?', stat:'S'},
+  {pid:312,  name:'sshd',        cpu:'0.0', mem:'0.2', tty:'?', stat:'Ss'},
+  {pid:398,  name:'cron',        cpu:'0.0', mem:'0.1', tty:'?', stat:'Ss'},
+  {pid:502,  name:'rsyslogd',    cpu:'0.1', mem:'0.3', tty:'?', stat:'Ssl'},
+  {pid:611,  name:'nginx',       cpu:'0.0', mem:'0.5', tty:'?', stat:'S'},
+  {pid:612,  name:'nginx',       cpu:'0.0', mem:'0.4', tty:'?', stat:'S'},
+  {pid:780,  name:'postgres',    cpu:'0.1', mem:'1.8', tty:'?', stat:'Ss'},
+  {pid:902,  name:'python3',     cpu:'1.2', mem:'3.4', tty:'?', stat:'S'},
+  {pid:1044, name:'node',        cpu:'0.8', mem:'2.1', tty:'?', stat:'Sl'},
+  {pid:1201, name:'redis-server',cpu:'0.1', mem:'0.8', tty:'?', stat:'Ssl'},
+  {pid:1555, name:'bash',        cpu:'0.0', mem:'0.1', tty:'pts/0', stat:'Ss'},
+  {pid:2100, name:'dmesg',       cpu:'0.0', mem:'0.1', tty:'?', stat:'S'},
+  {pid:2744, name:'auditd',      cpu:'0.0', mem:'0.2', tty:'?', stat:'S<sl'},
+  {pid:3001, name:'dockerd',     cpu:'0.3', mem:'1.5', tty:'?', stat:'Ssl'},
+];
+
+// ── STATE ──
+let S = {
+  phase:1, // 1=discovery, 2=investigation, 3=recovery
+  rogueKilled:false,
+  grepDone:false,
+  decrypted:false,
+  startTime:null,
+  timerIv:null,
+  logIv:null,
+  cmdCount:0,
+  history:[], histIdx:-1,
+  hints:0,
+};
+
+// ── BOOT ──
+function launchApp(){
+  document.getElementById('introOv').style.display='none';
+  const shell=document.getElementById('appShell');
+  shell.style.display='flex';
+  shell.style.flexDirection='column';
+  S.startTime=Date.now();
+  startTimer();
+  startLogFeed();
+  bootTerminal();
+  document.getElementById('termInput').focus();
+}
+
+// ── TIMER ──
+function startTimer(){
+  S.timerIv=setInterval(()=>{
+    const e=Math.round((Date.now()-S.startTime)/1000);
+    const m=String(Math.floor(e/60)).padStart(2,'0');
+    const s=String(e%60).padStart(2,'0');
+    document.getElementById('timerEl').textContent=m+':'+s;
+  },1000);
+}
+
+// ── LIVE LOG FEED ──
+const LOG_MESSAGES=[
+  {c:'critical', t:'[CRITICAL] Anomalous outbound connection detected on high port'},
+  {c:'warn',     t:'[WARN]     Unexpected CPU spike — single process consuming ~89%'},
+  {c:'warn',     t:'[WARN]     Memory pressure on neural-core: 88%'},
+  {c:'critical', t:'[CRITICAL] Data exfiltration indicators — 412 KB/s outbound'},
+  {c:'warn',     t:'[WARN]     Suspicious syscall sequence observed in userland'},
+  {c:'critical', t:'[CRITICAL] Root privilege escalation attempt logged'},
+  {c:'warn',     t:'[WARN]     Sensitive file access outside normal context'},
+  {c:'critical', t:'[CRITICAL] Reverse tunnel channel activity detected'},
+  {c:'warn',     t:'[WARN]     Scheduled task modification — unexpected entry'},
+  {c:'critical', t:'[CRITICAL] Kernel integrity check — anomaly flagged'},
+];
+let logIdx=0;
+function startLogFeed(){
+  addLogLine(LOG_MESSAGES[0].c,LOG_MESSAGES[0].t);
+  logIdx=1;
+  S.logIv=setInterval(()=>{
+    if(S.decrypted) return;
+    if(logIdx<LOG_MESSAGES.length){
+      const m=LOG_MESSAGES[logIdx++];
+      addLogLine(m.c,m.t);
+    } else {
+      addLogLine('critical','[CRITICAL] Exfiltration ongoing — RESPOND NOW');
+    }
+  },3200);
+}
+function addLogLine(cls,text){
+  const feed=document.getElementById('logFeed');
+  const d=document.createElement('div');
+  d.className='log-line '+(cls==='critical'?'critical':cls==='ok'?'ok':'warn');
+  d.textContent=text;
+  feed.appendChild(d);
+  feed.scrollTop=feed.scrollHeight;
+}
+
+// ── TERMINAL BOOT ──
+function bootTerminal(){
+  const lines=[
+    {c:'ln-dim',  t:'Linux neural-core 5.15.0-kali3-amd64 #1 SMP Debian x86_64 GNU/Linux'},
+    {c:'ln-dim',  t:''},
+    {c:'ln-warn', t:'╔══════════════════════════════════════════════════╗'},
+    {c:'ln-warn', t:'║  ⚠  SECURITY INCIDENT RESPONSE — IR-7734         ║'},
+    {c:'ln-warn', t:'║     Neural Core compromised — active breach       ║'},
+    {c:'ln-warn', t:'╚══════════════════════════════════════════════════╝'},
+    {c:'ln-dim',  t:''},
+    {c:'ln-info', t:"Type 'help' for available commands and guidance."},
+    {c:'ln-dim',  t:''},
+  ];
+  let d=0;
+  lines.forEach((l,i)=>{
+    setTimeout(()=>{if(l.t==='') out('','ln-dim'); else out(l.t,l.c);},d);
+    d+=i<2?40:90;
+  });
+  setTimeout(()=>document.getElementById('termInput').focus(),d+100);
+}
+
+// ── OUTPUT ──
+function out(text,cls){
+  const el=document.getElementById('termOutput');
+  const d=document.createElement('div');
+  d.className='ln '+(cls||'ln-out');
+  d.innerHTML=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+function outPrompt(cmd){
+  const el=document.getElementById('termOutput');
+  const d=document.createElement('div');
+  d.className='ln ln-prompt';
+  const resolved=document.body.classList.contains('resolved');
+  d.innerHTML=`<span class="pu">root</span>@neural-core:<span class="pp">~/incident-response</span># ${esc(cmd)}`;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── INPUT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('termInput');
+  inp.addEventListener('keydown',onKey);
+  document.getElementById('appShell').addEventListener('click',e=>{
+    if(!e.target.closest('a')&&!e.target.closest('button')) inp.focus();
+  });
+});
+
+function onKey(e){
+  const inp=e.target;
+  if(e.key==='Enter'){
+    const cmd=inp.value; inp.value='';
+    if(cmd.trim()){S.history.unshift(cmd);S.histIdx=-1;S.cmdCount++;}
+    runCmd(cmd);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(S.histIdx<S.history.length-1){S.histIdx++;inp.value=S.history[S.histIdx];}
+  } else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(S.histIdx>0){S.histIdx--;inp.value=S.history[S.histIdx];}
+    else{S.histIdx=-1;inp.value='';}
+  } else if(e.key==='Tab'){
+    e.preventDefault();doTab(inp);
+  } else if(e.ctrlKey&&e.key==='l'){
+    e.preventDefault();document.getElementById('termOutput').innerHTML='';
+  }
+}
+
+function doTab(inp){
+  const words=inp.value.split(' ');
+  const last=words[words.length-1];
+  const pool=['ps','kill','grep','ls','cat','help','clear','decrypt_core.sh','system.log','pwd','whoami','netstat','uname'];
+  const hits=pool.filter(x=>x.startsWith(last));
+  if(hits.length===1){words[words.length-1]=hits[0];inp.value=words.join(' ');}
+  else if(hits.length>1){out('');out(hits.join('    '),'ln-info');}
+}
+
+// ── COMMAND ROUTER ──
+function runCmd(raw){
+  const cmd=raw.trim();
+  outPrompt(cmd);
+  if(!cmd) return;
+  const parts=cmd.split(/\s+/);
+  const base=parts[0].toLowerCase();
+
+  if(base==='help')       { doHelp();return; }
+  if(base==='clear')      { document.getElementById('termOutput').innerHTML='';return; }
+  if(base==='pwd')        { out('/root/incident-response');return; }
+  if(base==='whoami')     { out('root');return; }
+  if(base==='uname')      { out('Linux neural-core 5.15.0-kali3-amd64 #1 SMP x86_64 GNU/Linux');return; }
+  if(base==='id')         { out('uid=0(root) gid=0(root) groups=0(root)');return; }
+  if(base==='ls')         { doLs(parts);return; }
+  if(base==='cat')        { doCat(parts);return; }
+  if(base==='ps')         { doPs(parts);return; }
+  if(base==='kill')       { doKill(parts);return; }
+  if(base==='grep')       { doGrep(parts);return; }
+  if(base==='netstat')    { doNetstat();return; }
+  if(base==='decrypt_core.sh'||base==='bash'&&parts[1]==='decrypt_core.sh') { doDecrypt(parts);return; }
+  if(base==='./decrypt_core.sh'||base==='sh'&&parts[1]==='decrypt_core.sh') { doDecrypt(parts);return; }
+  if(base==='exit')       { out('Cannot exit during active incident.','ln-warn');return; }
+  out(`bash: ${esc(base)}: command not found`,'ln-err');
+  out("Type 'help' for available commands.",'ln-info');
+}
+
+// ── HELP ──
+function doHelp(){
+  out('');
+  out('AVAILABLE COMMANDS','ln-warn');
+  out('');
+  out('  ps          enumerate running processes');
+  out('  kill        send a signal to a process');
+  out('  grep        search file contents');
+  out('  ls / cat    list and read files');
+  out('  netstat     show network connections');
+  out('  decrypt_core.sh   core recovery script (accepts a key argument)');
+  out('  clear / pwd / whoami / uname / id   utility commands');
+  out('');
+  out('CURRENT OBJECTIVE','ln-warn');
+  if(!S.rogueKilled){
+    out('  Phase 1: A rogue process is hiding among legitimate system daemons.','ln-info');
+    out('           Enumerate all running processes. Study names and resource usage closely.','ln-info');
+  } else if(!S.grepDone){
+    out('  Phase 2: The rogue process is down. Now trace how the attacker got in.','ln-info');
+    out('           The auth log is available in this directory. Search it carefully.','ln-info');
+  } else if(!S.decrypted){
+    out('  Phase 3: Login origin confirmed. Time to restore the core.','ln-info');
+    out('           The recovery script is in this directory. It needs a key.','ln-info');
+    out('           Developers sometimes leave deployment credentials in unexpected places.','ln-info');
+  } else {
+    out('  All phases complete.','ln-success');
+  }
+  out('');
+}
+
+// ── LS ──
+function doLs(parts){
+  const long=parts.some(p=>/^-.*l/.test(p));
+  out('');
+  if(long){
+    out('-rw------- 1 root root  3841 Apr 27 03:45 system.log');
+    out('-rwx------ 1 root root   812 Apr 27 03:14 decrypt_core.sh');
+    out('-rw------- 1 root root  1024 Apr 27 03:14 core_data.enc');
+    out('-rw-r--r-- 1 root root   220 Apr 27 03:14 .bashrc');
+  } else {
+    out('system.log   decrypt_core.sh   core_data.enc');
+  }
+  out('');
+}
+
+// ── CAT ──
+function doCat(parts){
+  if(!parts[1]){out('cat: missing file operand','ln-err');return;}
+  const f=parts[1].replace('./','');
+  if(f==='decrypt_core.sh'){
+    out('');
+    out('#!/bin/bash','ln-dim');
+    out('# decrypt_core.sh — Neural Core Recovery Script','ln-dim');
+    out('');
+    out('[[ -z "$KEY" ]] && { echo "Error: no key provided"; exit 1; }','ln-dim');
+    out('openssl enc -d -aes-256-cbc -in core_data.enc -pass pass:$KEY | tar xz','ln-dim');
+    out('systemctl restart neural-core','ln-dim');
+    out('echo "Core decrypted and restored."','ln-dim');
+    out('');
+  } else if(f==='system.log'){
+    out('');
+    out('system.log: 4812 lines. Direct output suppressed.','ln-warn');
+    out('Use a search utility to filter relevant entries.','ln-info');
+    out('');
+  } else if(f==='core_data.enc'){
+    out('cat: core_data.enc: binary data (encrypted)','ln-warn');
+  } else if(f==='.bashrc'){
+    out('# .bashrc','ln-dim');
+    out('alias ll="ls -la"');
+    out('export PATH=$PATH:/usr/local/sbin');
+  } else {
+    out(`cat: ${esc(f)}: No such file or directory`,'ln-err');
+  }
+}
+
+// ── PS AUX ──
+function doPs(parts){
+  if(!parts.includes('aux')&&!parts.includes('-aux')&&!parts.includes('-e')&&!parts.includes('-ef')&&!parts.includes('a')){
+    out('');
+    out('usage: ps [options]','ln-dim');
+    out('  Try: ps aux','ln-dim');
+    out('');
+    return;
+  }
+  out('');
+  out('USER         PID %CPU %MEM    VSZ    RSS TTY      STAT START   TIME COMMAND');
+
+  // rogue proc blends in — moderate CPU, placed far from sshd, no hint
+  const allProcs=[...NORMAL_PROCS];
+  // insert after auditd (near the end) to separate it spatially from legitimate sshd
+  const insertAt=allProcs.findIndex(p=>p.name==='auditd')+1;
+  allProcs.splice(insertAt,0,ROGUE_PROC);
+
+  allProcs.forEach(p=>{
+    const line=`root      ${String(p.pid).padEnd(6)} ${String(p.cpu).padEnd(5)} ${String(p.mem).padEnd(5)} ${randomVSZ(p.pid).padEnd(7)} ${randomRSS(p.pid).padEnd(5)} ${(p.tty||'?').padEnd(9)} ${p.stat.padEnd(6)} Apr27   ${randomTime(p.pid)} ${p.name}`;
+    // all lines same colour — analyst must read carefully
+    out(esc(line),'ln-out');
+  });
+  out('');
+}
+
+function randomVSZ(pid){return String(8000+((pid*17)%40000));}
+function randomRSS(pid){return String(2000+((pid*13)%8000));}
+function randomTime(pid){const m=pid%60,s=pid%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+
+// ── KILL ──
+function doKill(parts){
+  if(S.rogueKilled){out('kill: no such process','ln-err');return;}
+
+  const pidArg=parts.find(p=>/^\d+$/.test(p));
+  const hasSig9=parts.includes('-9')||parts.includes('-SIGKILL');
+
+  if(!pidArg){
+    out('kill: usage: kill [-signal] pid','ln-err');
+    return;
+  }
+  const pid=parseInt(pidArg,10);
+
+  if(pid===ROGUE_PROC.pid){
+    if(!hasSig9){
+      out(`kill: (${pid}) operation not permitted — process ignoring signal`,'ln-err');
+      return;
+    }
+    // SUCCESS
+    out('');
+    setTimeout(()=>{
+      out(`[${ROGUE_PROC.pid}]+  Killed`,'ln-out');
+      out('');
+      S.rogueKilled=true;
+      completePhase1();
+    },500);
+  } else {
+    const normal=NORMAL_PROCS.find(p=>p.pid===pid);
+    if(normal){
+      out(`kill: (${pid}) operation not permitted`,'ln-err');
+    } else {
+      out(`kill: (${pid}) No such process`,'ln-err');
+    }
+  }
+}
+
+// ── GREP ──
+function doGrep(parts){
+  if(S.phase<2&&!S.rogueKilled){
+    out('grep: system.log: permission denied','ln-err');
+    return;
+  }
+
+  const fileArg=parts.find(p=>p==='system.log');
+  if(!fileArg){
+    out('usage: grep [pattern] [file]','ln-dim');
+    return;
+  }
+  const pattern=(parts[1]||'').replace(/['"]/g,'');
+  const pl=pattern.toLowerCase();
+
+  if(!pattern){
+    out('grep: missing pattern','ln-err');
+    return;
+  }
+
+  // very broad patterns produce noise only
+  const isBroad = pl===''||pl==='.'||pl==='*'||pl==='ssh'||pl==='sshd'||pl==='root';
+  if(isBroad){
+    out('');
+    // dump ~20 noisy lines, attacker line buried and not labeled
+    out('Apr 27 00:01:14 neural-core sshd[312]: Server listening on :: port 22.');
+    out('Apr 27 00:14:08 neural-core sshd[312]: Failed password for invalid user test from 103.21.58.14 port 33100 ssh2');
+    out('Apr 27 01:02:55 neural-core sshd[312]: Failed password for root from 45.33.32.156 port 49123 ssh2');
+    out('Apr 27 01:44:20 neural-core sshd[312]: Failed password for nobody from 198.98.56.7 port 52001 ssh2');
+    out('Apr 27 02:11:33 neural-core sshd[312]: Connection closed by 91.134.148.9 port 37220');
+    out('Apr 27 02:33:17 neural-core sshd[312]: Disconnected from authenticating user root 195.154.68.100 port 41200');
+    out('Apr 27 02:44:09 neural-core sshd[312]: Failed password for root from 195.154.68.100 port 55810 ssh2');
+    out('Apr 27 02:58:01 neural-core sshd[312]: Failed password for root from 177.37.154.200 port 60010 ssh2');
+    out('Apr 27 03:01:22 neural-core sshd[312]: Failed password for root from 198.98.56.7 port 43211 ssh2');
+    out('Apr 27 03:02:44 neural-core sshd[312]: Failed password for root from 195.154.68.100 port 55812 ssh2');
+    out('Apr 27 03:06:11 neural-core sshd[312]: Failed password for root from 103.21.58.14 port 49909 ssh2');
+    out('Apr 27 03:12:08 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 58301 ssh2');
+    out('Apr 27 03:12:19 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 58445 ssh2');
+    out('Apr 27 03:13:55 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 59000 ssh2');
+    out('Apr 27 03:14:22 neural-core sshd[312]: Accepted publickey for root from 185.220.101.47 port 59122 ssh2');
+    out('Apr 27 03:14:23 neural-core sshd[312]: pam_unix(sshd:session): session opened for user root by (uid=0)');
+    out('Apr 27 03:16:40 neural-core sshd[312]: Failed password for invalid user ubuntu from 103.21.58.14 port 38801 ssh2');
+    out('Apr 27 03:22:14 neural-core sshd[312]: Connection closed by 45.33.32.156 port 51209');
+    out('[... 4794 more lines ...]','ln-dim');
+    out('');
+    return;
+  }
+
+  const matchesAccepted = pl.includes('accepted');
+  const matches185      = pl.includes('185.220')||pl===attIp||pl.includes('185.220.101');
+  const matchesFailed   = pl.includes('failed')||pl.includes('invalid');
+  const matchesPam      = pl.includes('pam')||pl.includes('session');
+
+  out('');
+
+  if(matchesFailed){
+    out('Apr 27 03:01:22 neural-core sshd[312]: Failed password for root from 198.98.56.7 port 43211 ssh2');
+    out('Apr 27 03:02:44 neural-core sshd[312]: Failed password for root from 195.154.68.100 port 55810 ssh2');
+    out('Apr 27 03:12:08 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 58301 ssh2');
+    out('Apr 27 03:12:19 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 58445 ssh2');
+    out('Apr 27 03:13:55 neural-core sshd[312]: Failed password for root from 185.220.101.47 port 59000 ssh2');
+  }
+
+  if(matchesAccepted||matches185){
+    out('Apr 27 03:14:22 neural-core sshd[312]: Accepted publickey for root from 185.220.101.47 port 59122 ssh2');
+    if(matchesAccepted||matchesPam||matches185){
+      out('Apr 27 03:14:23 neural-core sshd[312]: pam_unix(sshd:session): session opened for user root by (uid=0)');
+    }
+    if(matches185){
+      out('Apr 27 03:14:31 neural-core sshd[312]: New session 4 of user root.');
+      out('Apr 27 03:16:00 neural-core kernel: [18432.114] audit: type=1400 process spawned via sshd session');
+    }
+    out('');
+    if(!S.grepDone){
+      S.grepDone=true;
+      completePhase2();
+    }
+  } else if(!matchesFailed){
+    out('(0 results)','ln-dim');
+  }
+  out('');
+}
+const attIp=ATTACKER_IP;
+
+// ── NETSTAT ──
+function doNetstat(){
+  out('');
+  out('Active Internet connections (servers and established)');
+  out('Proto Recv-Q Send-Q Local Address           Foreign Address         State');
+  out('tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN');
+  out('tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN');
+  out('tcp        0      0 0.0.0.0:443             0.0.0.0:*               LISTEN');
+  out('tcp        0  87040 10.0.0.50:52144         185.220.101.47:4444     ESTABLISHED');
+  out('tcp        0      0 10.0.0.50:43211         10.0.0.5:53             ESTABLISHED');
+  out('tcp6       0      0 :::22                   :::*                    LISTEN');
+  out('');
+}
+
+// ── DECRYPT ──
+function doDecrypt(parts){
+  if(!S.rogueKilled){out('decrypt_core.sh: core lock active — complete current IR phase first','ln-err');return;}
+  if(!S.grepDone){out('decrypt_core.sh: prerequisite check failed — investigation incomplete','ln-err');return;}
+  if(S.decrypted){out('decrypt_core.sh: core already restored','ln-out');return;}
+
+  const kIdx=parts.indexOf('-k');
+  const keyVal=kIdx!==-1?parts[kIdx+1]:null;
+
+  if(!keyVal){
+    out('decrypt_core.sh: missing required argument','ln-err');
+    out('See: cat decrypt_core.sh','ln-dim');
+    return;
+  }
+
+  if(keyVal===BACKUP_KEY){
+    runDecryptSuccess();
+  } else {
+    out(`decrypt_core.sh: authentication failed — key rejected`,'ln-err');
+  }
+}
+
+// ── DECRYPT SUCCESS SEQUENCE ──
+function runDecryptSuccess(){
+  const seq=[
+    {c:'ln-out',  t:'decrypt_core.sh -k SHADOWFALL_7734'},
+    {c:'ln-out',  t:''},
+    {c:'ln-info', t:'[✓] Authenticating backup key... OK'},
+    {c:'ln-info', t:'[✓] Decrypting core_data.enc with AES-256-CBC...'},
+    {c:'ln-info', t:'[✓] Restoring neural core configuration...'},
+    {c:'ln-info', t:'[✓] Rebuilding encrypted memory segments...'},
+    {c:'ln-info', t:'[✓] Terminating all attacker sessions...'},
+    {c:'ln-info', t:'[✓] Rotating SSH keys...'},
+    {c:'ln-info', t:'[✓] Flushing attacker credentials from PAM...'},
+    {c:'ln-info', t:'[✓] Restarting neural-core.service...'},
+    {c:'ln-out',  t:''},
+    {c:'ln-success', t:'████████████████████████████████████████ 100%'},
+    {c:'ln-success', t:''},
+    {c:'ln-success', t:'[SUCCESS] NEURAL CORE FULLY RESTORED'},
+    {c:'ln-success', t:'[SUCCESS] All 3 IR phases complete'},
+    {c:'ln-success', t:''},
+    {c:'ln-out',     t:''},
+  ];
+  let delay=0;
+  seq.forEach((l,i)=>{
+    setTimeout(()=>{
+      if(l.t==='') out('','ln-dim'); else out(l.t,l.c);
+      if(i===seq.length-1){ S.decrypted=true; completePhase3(); setTimeout(triggerResolution,800); }
+    },delay);
+    delay+=l.c==='ln-info'?320:110;
+  });
+}
+
+// ── PHASE TRANSITIONS ──
+function completePhase1(){
+  // update phase UI
+  setPhase(1,'done');
+  setPhase(2,'active');
+  S.phase=2;
+
+  updateVitals({cpu:'18%',mem:'45%',net:'LOW',disk:'60%'});
+  updateThreat(55,'HIGH — CONTAINED — INVESTIGATION NEEDED');
+  updateStatus('INVESTIGATION','Rogue process killed','Exfil severed');
+
+  document.getElementById('hintBox').innerHTML=`
+    <b>Phase 1 complete ✓</b><br><br>
+    <b>Phase 2 — Investigation</b><br>
+    The attacker got in through an open service. There's an auth log in this directory. You need to establish <b>when</b> the first successful login occurred and <b>where it came from</b>. A broad search will return a lot of noise — narrow your pattern.<br><br>
+    Auth logs typically distinguish between rejected and <i>accepted</i> authentication attempts.`;
+
+  addLogLine('ok','[OK] Anomalous process terminated');
+  addLogLine('ok','[OK] Outbound exfil channel severed');
+  addLogLine('warn','[WARN] Auth log shows suspicious login activity — investigate');
+
+  document.getElementById('attackNode').querySelector('.net-node-label').innerHTML='ACTIVITY<br>DETECTED';
+  showToast('Phase 1 complete — investigate the intrusion vector',true);
+}
+
+function completePhase2(){
+  setPhase(2,'done');
+  setPhase(3,'active');
+  S.phase=3;
+
+  updateThreat(28,'MODERATE — RECOVERY PHASE');
+  updateStatus('RECOVERY','Attack traced','Core encrypted');
+
+  document.getElementById('hintBox').innerHTML=`
+    <b>Phase 2 complete ✓</b><br><br>
+    <b>Phase 3 — Recovery</b><br>
+    Login origin confirmed. The encrypted core needs a backup key to restore. Recovery keys aren't usually stored on the compromised server — look elsewhere. Developers sometimes leave deployment credentials embedded in the application itself.<br><br>
+    The recovery script accepts a key flag. Usage follows the pattern: <code>script -k &lt;key&gt;</code>.`;
+
+  addLogLine('ok','[OK] Attacker origin confirmed from auth log');
+  addLogLine('warn','[WARN] Core still encrypted — recovery required');
+  showToast('Phase 2 complete — locate the recovery key',true);
+}
+
+function completePhase3(){
+  setPhase(3,'done');
+  S.phase=4;
+  clearInterval(S.logIv);
+  updateThreat(0,'SECURE — ALL SYSTEMS OPERATIONAL');
+  updateStatus('RESOLVED','All phases complete','Core restored');
+  document.getElementById('sbAlert').textContent='✓ CORE SECURED';
+  document.getElementById('atbMsg').textContent='✓ INCIDENT RESOLVED — NEURAL CORE RESTORED';
+  addLogLine('ok','[OK] Neural Core decrypted and restored');
+  addLogLine('ok','[OK] Incident IR-7734 resolved');
+  addLogLine('ok','[OK] Security posture: NORMAL');
+}
+
+async function triggerResolution(){
+  // flash effect
+  const flash=document.createElement('div');
+  flash.className='resolution-flash';
+  document.body.appendChild(flash);
+  setTimeout(()=>flash.remove(),1200);
+
+  // transition to blue
+  document.body.classList.add('resolved');
+  document.getElementById('termTitle').textContent='root@neural-core — INCIDENT RESOLVED — CORE SECURED';
+
+  // update network map
+  document.getElementById('coreNode').classList.remove('compromised');
+  document.getElementById('coreNode').querySelector('.net-node-icon').textContent='🧠';
+  document.getElementById('coreNode').querySelector('.net-node-label').innerHTML='NEURAL CORE<br>✓ SECURED';
+  document.getElementById('attackNode').classList.remove('compromised');
+  document.getElementById('attackNode').querySelector('.net-node-icon').textContent='🚫';
+  document.getElementById('attackNode').querySelector('.net-node-label').innerHTML='BLOCKED<br>185.220.101.47';
+
+  clearInterval(S.timerIv);
+
+  // Fetch flag from server
+  const flagRes = await fetch('/api/flag/5', { credentials:'include' });
+  const flag = flagRes.ok ? (await flagRes.json()).flag : 'FLAG UNAVAILABLE';
+  // Submit flag to mark level complete
+  await fetch('/api/verify-flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ level: 5, flag: flag })
+  });
+
+  setTimeout(()=>{
+    const elapsed=Math.round((Date.now()-S.startTime)/1000);
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('winStats').innerHTML=`
+      <div class="wstat"><div class="sv">${m}:${s}</div><div class="sl">IR TIME</div></div>
+      <div class="wstat"><div class="sv">${S.cmdCount}</div><div class="sl">COMMANDS</div></div>
+      <div class="wstat"><div class="sv">3/3</div><div class="sl">PHASES DONE</div></div>`;
+    document.getElementById('winFlag').textContent = 'COPY: ' + flag;
+    document.getElementById('winOv').style.display='flex';
+  },1800);
+}
+
+// ── PHASE UI HELPERS ──
+function setPhase(n,state){
+  const num=document.getElementById('phaseNum'+n);
+  const txt=document.getElementById('phaseText'+n);
+  const tag=document.getElementById('phaseTag'+n);
+  if(state==='done'){
+    num.className='phase-num done';num.textContent='✓';
+    txt.className='phase-text done';
+    tag.className='phase-tag-sm done';tag.textContent='DONE';
+  } else if(state==='active'){
+    num.className='phase-num active';
+    txt.className='phase-text active';
+    tag.className='phase-tag-sm active';tag.textContent='ACTIVE';
+  }
+}
+
+function updateThreat(pct,label){
+  document.getElementById('threatFill').style.width=pct+'%';
+  document.getElementById('threatLabel').textContent=label;
+}
+
+function updateVitals({cpu,mem,net,disk}){
+  if(cpu!==undefined){
+    const v=parseInt(cpu);
+    document.getElementById('vCPU').style.width=v+'%';
+    document.getElementById('vCPU').style.background=v>80?'var(--accent)':v>50?'#ff8800':'#00ff88';
+    document.getElementById('vCPUv').textContent=cpu;
+  }
+  if(mem!==undefined){
+    const v=parseInt(mem);
+    document.getElementById('vMEM').style.width=v+'%';
+    document.getElementById('vMEM').style.background=v>80?'var(--accent)':v>50?'#ff8800':'#00ff88';
+    document.getElementById('vMEMv').textContent=mem;
+  }
+  if(net!==undefined){
+    const isMax=net==='MAX';
+    document.getElementById('vNET').style.width=isMax?'100%':'20%';
+    document.getElementById('vNET').style.background=isMax?'var(--accent)':'#00ff88';
+    document.getElementById('vNETv').textContent=net;
+  }
+}
+
+function updateStatus(phase,proc,conn){
+  document.getElementById('sbPhase').innerHTML=`Phase: <span style="color:var(--ok)">${phase}</span>`;
+  document.getElementById('sbProc').textContent='Processes: '+proc;
+  document.getElementById('sbConn').innerHTML=`Connections: <span style="color:var(--ok)">${conn}</span>`;
+}
+
+// ── TOAST ──
+let toastT;
+function showToast(msg,success=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast'+(success?' success':'')+' show';
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>{el.className='toast'+(success?' success':'');},3200);
+}
+
+// ── RESET ──
+function resetGame(){
+  document.getElementById('winOv').style.display='none';
+  document.body.classList.remove('resolved');
+  document.getElementById('termOutput').innerHTML='';
+  document.getElementById('logFeed').innerHTML='';
+  // reset phase UI
+  for(let i=1;i<=3;i++){
+    const num=document.getElementById('phaseNum'+i);
+    const txt=document.getElementById('phaseText'+i);
+    const tag=document.getElementById('phaseTag'+i);
+    if(i===1){
+      num.className='phase-num active';num.textContent='1';
+      txt.className='phase-text active';
+      tag.className='phase-tag-sm active';tag.textContent='ACTIVE';
+    } else {
+      num.className='phase-num';num.textContent=String(i);
+      txt.className='phase-text';
+      tag.className='phase-tag-sm locked';tag.textContent='LOCKED';
+    }
+  }
+  S={phase:1,rogueKilled:false,grepDone:false,decrypted:false,startTime:Date.now(),timerIv:null,logIv:null,cmdCount:0,history:[],histIdx:-1,hints:0};
+  updateThreat(92,'CRITICAL — ACTIVE BREACH');
+  updateVitals({cpu:'94%',mem:'88%',net:'MAX',disk:'60%'});
+  updateStatus('DISCOVERY','monitoring','BREACH ACTIVE');
+  document.getElementById('sbAlert').textContent='⚠ CORE COMPROMISED';
+  document.getElementById('atbMsg').textContent='⚠ CRITICAL BREACH — NEURAL CORE COMPROMISED — RESPOND NOW';
+  document.getElementById('termTitle').textContent='root@neural-core — INCIDENT RESPONSE — BREACH ACTIVE';
+  document.getElementById('hintBox').innerHTML=`<b>Phase 1 — Discovery</b><br>Something is consuming abnormal CPU. Standard system daemons don\'t behave that way. Look carefully at process names — attackers often disguise implants as near-identical copies of known binaries. One extra character is all it takes.<br><br>Once identified, a forceful termination signal is needed — the process is ignoring soft signals.`;
+  document.getElementById('coreNode').classList.add('compromised');
+  document.getElementById('coreNode').querySelector('.net-node-icon').textContent='🧠';
+  document.getElementById('coreNode').querySelector('.net-node-label').innerHTML='NEURAL CORE<br>10.0.0.50';
+  document.getElementById('attackNode').classList.add('compromised');
+  document.getElementById('attackNode').querySelector('.net-node-icon').textContent='💀';
+  document.getElementById('attackNode').querySelector('.net-node-label').innerHTML='ATTACKER<br>UNKNOWN';
+  startTimer();
+  startLogFeed();
+  bootTerminal();
+}
+
+// ── INPUT FOCUS ──
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('appShell').style.display='none';
+});
+</script>
+</body>
+</html>

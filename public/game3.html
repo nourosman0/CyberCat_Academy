@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryptic Vault — Cipher Cracking Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#141921;--bg4:#1a2030;
+  --border:#1e2836;--border2:#273040;
+  --text:#d4dde8;--text2:#6e7f94;--text3:#3a4a5c;
+  --cyan:#00e5ff;--cyan2:#79c0ff;--cyan-dim:rgba(0,229,255,0.15);
+  --green:#00ff88;--green2:#39d07a;
+  --yellow:#f0c060;--yellow2:#e8b840;
+  --red:#ff4060;--red2:#ff6080;
+  --purple:#bc8cff;--magenta:#ff00aa;
+  --gold:#ffd700;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'JetBrains Mono',monospace;color:var(--text);display:flex;flex-direction:column;}
+
+/* scanlines */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);}
+
+/* ── TITLEBAR ── */
+.titlebar{display:flex;align-items:center;height:38px;background:rgba(7,9,15,0.98);border-bottom:1px solid var(--border2);padding:0 14px;flex-shrink:0;z-index:10;position:relative;}
+.tb-logo{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--purple);text-shadow:0 0 12px rgba(188,140,255,0.6);margin-right:20px;display:flex;align-items:center;gap:8px;}
+.tb-menu{display:flex;}
+.tb-mi{padding:0 10px;height:38px;display:flex;align-items:center;color:var(--text2);font-size:10px;cursor:pointer;border-right:1px solid var(--border);transition:.15s;}
+.tb-mi:hover{background:var(--bg3);color:var(--text);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.timer-wrap{text-align:right;}
+.timer-lbl{font-size:8px;color:var(--text3);letter-spacing:1px;}
+.timer{font-family:'Press Start 2P',monospace;font-size:9px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);color:var(--yellow2);}
+.timer.urgent{color:var(--red);animation:tp .6s infinite;}
+@keyframes tp{0%,100%{opacity:1}50%{opacity:.35}}
+.tbback{font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);cursor:pointer;text-decoration:none;transition:.15s;display:inline-flex;align-items:center;}
+.tbback:hover{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px rgba(0,229,255,0.2);}
+
+/* ── MISSION STRIP ── */
+.mission-strip{display:flex;align-items:center;gap:14px;padding:5px 14px;background:rgba(0,100,140,0.07);border-bottom:1px solid rgba(0,229,255,0.12);flex-shrink:0;}
+.mission-icon{font-size:13px;animation:mi 2.5s infinite;}
+@keyframes mi{0%,100%{opacity:1}50%{opacity:.4}}
+.mission-text{font-size:9px;color:var(--text2);}
+.mission-text b{color:var(--yellow2);}
+.mission-text .clue{color:var(--purple);}
+.mission-progress{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:9px;color:var(--text3);}
+.prog-bg{width:100px;height:5px;background:var(--bg3);border:1px solid var(--border);}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));transition:.4s;}
+.prog-label{color:var(--text2);font-size:9px;min-width:32px;text-align:right;}
+
+/* ── MAIN LAYOUT ── */
+.workspace{flex:1;display:grid;grid-template-columns:1fr 300px;grid-template-rows:1fr 200px;overflow:hidden;min-height:0;}
+
+/* ── CIPHER TEXT PANEL ── */
+.panel-cipher{grid-column:1;grid-row:1;display:flex;flex-direction:column;border-right:3px solid var(--border2);border-bottom:3px solid var(--border2);overflow:hidden;}
+.panel-title{padding:6px 12px;background:var(--bg3);border-bottom:1px solid var(--border2);font-size:9px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.panel-dot{width:7px;height:7px;border-radius:50%;}
+.cipher-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 18px;}
+.cipher-scroll::-webkit-scrollbar{width:6px;}
+.cipher-scroll::-webkit-scrollbar-thumb{background:var(--border2);}
+
+.cipher-text{font-family:'Share Tech Mono',monospace;font-size:15px;line-height:2.2;letter-spacing:0.5px;word-spacing:6px;color:var(--text2);}
+.c-char{display:inline-block;position:relative;cursor:default;transition:color .15s;}
+.c-char.mapped{color:var(--cyan);text-shadow:0 0 6px rgba(0,229,255,0.4);}
+.c-char.correct{color:var(--green);text-shadow:0 0 8px rgba(0,255,136,0.5);}
+.c-char.space,.c-char.punct{color:var(--text3);cursor:default;}
+.c-char.space{pointer-events:none;}
+.c-char.drop-target{background:rgba(0,229,255,0.15);outline:1px solid var(--cyan);border-radius:2px;}
+
+/* decoded line below each cipher char */
+.c-decoded{display:block;position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;letter-spacing:0;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,0.6);pointer-events:none;font-family:'JetBrains Mono',monospace;}
+.c-decoded.correct-dec{color:var(--green);text-shadow:0 0 8px rgba(0,255,136,0.6);}
+
+/* ── FREQUENCY CHART PANEL ── */
+.panel-freq{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;overflow:hidden;}
+.freq-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 12px;}
+.freq-scroll::-webkit-scrollbar{width:5px;}
+.freq-scroll::-webkit-scrollbar-thumb{background:var(--border2);}
+.freq-bar-wrap{display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer;padding:2px 4px;transition:.15s;border-radius:2px;}
+.freq-bar-wrap:hover{background:var(--bg3);}
+.freq-bar-wrap.selected{background:rgba(0,229,255,0.08);outline:1px solid rgba(0,229,255,0.3);}
+.freq-symbol{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--yellow2);width:16px;text-align:center;flex-shrink:0;}
+.freq-bar-bg{flex:1;height:12px;background:var(--bg4);border:1px solid var(--border);position:relative;}
+.freq-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),rgba(188,140,255,0.4));transition:.3s;}
+.freq-bar-fill.mapped{background:linear-gradient(90deg,var(--green),rgba(0,255,136,0.4));}
+.freq-count{font-size:9px;color:var(--text3);width:24px;text-align:right;flex-shrink:0;}
+.freq-decoded{font-size:11px;color:var(--cyan);width:16px;text-align:center;flex-shrink:0;font-weight:700;}
+.freq-decoded.correct-fc{color:var(--green);}
+
+/* ── LETTER MAPPING PANEL ── */
+.panel-mapping{grid-column:1;grid-row:2;display:flex;flex-direction:column;overflow:hidden;}
+.mapping-area{flex:1;padding:10px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.mapping-area::-webkit-scrollbar{width:5px;}
+.mapping-area::-webkit-scrollbar-thumb{background:var(--border2);}
+
+/* draggable letter tiles */
+.letter-bank{display:flex;flex-wrap:wrap;gap:5px;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);flex-shrink:0;}
+.letter-tile{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);cursor:grab;transition:all .15s;user-select:none;border-radius:2px;}
+.letter-tile:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px rgba(0,229,255,0.3);}
+.letter-tile.used{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.06);}
+.letter-tile.dragging{opacity:0.4;transform:scale(0.9);}
+.letter-tile[draggable=true]:active{cursor:grabbing;}
+
+/* mapping rows */
+.map-row{display:flex;align-items:center;gap:8px;padding:3px 0;}
+.map-cipher{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700;color:var(--yellow2);width:18px;text-align:center;flex-shrink:0;}
+.map-arrow{color:var(--text3);font-size:10px;flex-shrink:0;}
+.map-slot{width:28px;height:28px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:transparent;transition:all .2s;border-radius:2px;flex-shrink:0;cursor:pointer;position:relative;}
+.map-slot.filled{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.07);border-style:solid;}
+.map-slot.filled.correct{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.08);}
+.map-slot.drop-hover{border-color:var(--cyan);background:rgba(0,229,255,0.12);border-style:solid;}
+.map-clear{font-size:11px;color:var(--text3);cursor:pointer;padding:2px 4px;transition:.15s;flex-shrink:0;}
+.map-clear:hover{color:var(--red2);}
+.map-hint-badge{font-size:8px;padding:1px 5px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);color:var(--yellow2);border-radius:2px;margin-left:4px;}
+
+/* mapping grid compact */
+.map-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;width:100%;}
+.map-cell{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);padding:4px 6px;border-radius:2px;transition:.2s;}
+.map-cell.active-drop{border-color:var(--cyan);background:rgba(0,229,255,0.06);}
+.map-cell.cell-correct{border-color:var(--green);background:rgba(0,255,136,0.05);}
+.cell-sym{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--yellow2);width:14px;text-align:center;}
+.cell-arrow{color:var(--text3);font-size:8px;}
+.cell-drop{width:22px;height:22px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:transparent;border-radius:2px;transition:.2s;}
+.cell-drop.has-letter{color:var(--cyan);border-color:var(--cyan);background:rgba(0,229,255,0.06);border-style:solid;}
+.cell-drop.has-letter.correct-letter{color:var(--green);border-color:var(--green);background:rgba(0,255,136,0.06);}
+.cell-drop.drag-over{border-color:var(--cyan);background:rgba(0,229,255,0.2);border-style:solid;}
+.cell-clr{font-size:9px;color:var(--text3);cursor:pointer;padding:1px 3px;transition:.15s;flex-shrink:0;}
+.cell-clr:hover{color:var(--red2);}
+
+/* ── TOOLBAR STRIP ── */
+.toolstrip{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.btn-t{padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:.15s;}
+.btn-t:hover{background:var(--bg4);color:var(--text);}
+.btn-hint{background:rgba(240,192,96,0.08);border-color:rgba(240,192,96,0.3);color:var(--yellow2);}
+.btn-hint:hover{background:rgba(240,192,96,0.18);box-shadow:0 0 10px rgba(240,192,96,0.2);}
+.btn-reset{background:rgba(255,64,96,0.06);border-color:rgba(255,64,96,0.25);color:var(--red2);}
+.btn-reset:hover{background:rgba(255,64,96,0.15);}
+.tsep{width:1px;height:20px;background:var(--border);}
+.hint-counter{font-size:9px;color:var(--text3);padding:3px 8px;background:var(--bg3);border:1px solid var(--border);}
+.hint-counter span{color:var(--yellow2);}
+
+/* ── STATUS BAR ── */
+.statusbar{display:flex;align-items:center;gap:16px;padding:3px 12px;background:var(--bg3);border-top:1px solid var(--border);flex-shrink:0;font-size:9px;color:var(--text3);}
+.sb-val{color:var(--text2);}
+.sb-alert{margin-left:auto;padding:2px 8px;background:rgba(255,64,96,0.12);border:1px solid rgba(255,64,96,0.35);color:var(--red2);font-family:'Press Start 2P',monospace;font-size:7px;animation:ab 1.8s infinite;}
+@keyframes ab{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(7,9,15,0.94);backdrop-filter:blur(8px);}
+.ov-win{background:var(--bg2);border:1px solid var(--border2);max-width:580px;width:92%;box-shadow:0 0 80px rgba(0,0,0,0.9);}
+.ov-tb{display:flex;align-items:center;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:9px;color:var(--text2);gap:8px;}
+.ov-dot{width:10px;height:10px;border-radius:50%;}
+.ov-body{padding:24px 28px;}
+.ov-title{font-family:'Press Start 2P',monospace;font-size:14px;text-align:center;margin-bottom:10px;line-height:1.7;}
+.ov-sub{text-align:center;color:var(--text2);font-size:10px;line-height:2.2;margin-bottom:18px;}
+.ctf-box{margin:16px 0;padding:16px 20px;background:rgba(0,0,0,.7);border:2px solid var(--gold);box-shadow:0 0 40px rgba(255,215,0,.35),inset 0 0 20px rgba(255,215,0,.05);text-align:center;animation:fp 1.8s ease-in-out infinite;}
+@keyframes fp{0%,100%{box-shadow:0 0 40px rgba(255,215,0,.35)}50%{box-shadow:0 0 80px rgba(255,215,0,.7)}}
+.ctf-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,215,0,.55);margin-bottom:8px;letter-spacing:3px;}
+.ctf-flag{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--gold);text-shadow:0 0 16px var(--gold);letter-spacing:2px;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0;}
+.sblock{padding:10px 12px;background:var(--bg3);border:1px solid var(--border);text-align:center;}
+.sval{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--cyan);margin-bottom:4px;}
+.slbl{font-size:8px;color:var(--text3);}
+.ov-btns{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+.ov-btn{padding:8px 18px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;border:none;transition:all .2s;letter-spacing:1px;text-decoration:none;display:inline-flex;align-items:center;}
+.ov-btn.primary{background:var(--green2);color:#000;}
+.ov-btn.primary:hover{background:var(--green);box-shadow:0 0 20px rgba(0,255,136,.4);}
+.ov-btn.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.ov-btn.secondary:hover{color:var(--text);}
+.ov-btn.danger{background:rgba(255,64,96,.12);color:var(--red2);border:1px solid var(--red);}
+.ov-btn.danger:hover{background:rgba(255,64,96,.25);}
+/* start overlay purple theme */
+#startOv .ov-win{border-color:rgba(188,140,255,.35);box-shadow:0 0 80px rgba(0,0,0,.9),0 0 60px rgba(188,140,255,.08);}
+#startOv .ov-tb{background:rgba(18,10,36,.95);border-bottom-color:rgba(188,140,255,.2);}
+#startOv .ov-body{background:rgba(12,8,28,.5);}
+#startOv .ov-win{background:linear-gradient(160deg,#0d0a1a,#0d1117);}
+#startOv .ov-btn.primary{background:linear-gradient(135deg,#9b5de5,#7b3dc5);color:#fff;border:none;}
+#startOv .ov-btn.primary:hover{background:linear-gradient(135deg,#bc8cff,#9b5de5);box-shadow:0 0 20px rgba(188,140,255,.5);}
+#startOv .ov-sub{color:rgba(188,140,255,.6);}
+
+/* Toast */
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(20px);z-index:600;background:rgba(255,64,96,.15);border:1px solid var(--red);padding:8px 20px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--red2);opacity:0;transition:all .35s;pointer-events:none;white-space:nowrap;}
+.toast.success{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green);}
+
+/* win flash */
+.win-flash{position:fixed;inset:0;z-index:400;pointer-events:none;background:rgba(0,255,136,0.18);opacity:0;animation:wf .8s ease-out forwards;}
+@keyframes wf{0%{opacity:1}100%{opacity:0}}
+
+/* drag ghost */
+#dragGhost{position:fixed;pointer-events:none;z-index:9999;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;background:var(--bg2);border:1px solid var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(0,229,255,0.5);border-radius:2px;opacity:0;transition:opacity .1s;}
+</style>
+</head>
+<body>
+
+<!-- START OVERLAY -->
+<div class="overlay" id="startOv">
+  <div class="ov-win" style="border-color:rgba(188,140,255,.45);box-shadow:0 0 80px rgba(124,58,237,.25),0 0 0 1px rgba(188,140,255,.1);">
+    <div class="ov-tb">
+      <div class="ov-dot" style="background:#ff5f57;"></div>
+      <div class="ov-dot" style="background:#febc2e;margin-left:4px;"></div>
+      <div class="ov-dot" style="background:#28c840;margin-left:4px;"></div>
+      <span style="margin-left:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--purple);">CRYPTIC VAULT v1.0 — LEVEL 3</span>
+    </div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:12px;">🔐</div>
+      <div class="ov-title" style="color:var(--purple);">CRYPTIC<br><span style="color:#d4aaff;">VAULT</span><br><span style="font-size:8px;color:rgba(188,140,255,.6);letter-spacing:3px;">SUBSTITUTION CIPHER CHALLENGE</span></div>
+      <div class="ov-sub">Intercepted transmission detected.<br><span style="color:var(--yellow2);">Mission:</span> Break the <span style="color:#d4aaff;">substitution cipher</span> and recover the hidden flag.</div>
+      <div style="background:rgba(20,14,40,.9);border:1px solid rgba(188,140,255,.35);padding:14px;margin-bottom:16px;box-shadow:inset 0 0 20px rgba(124,58,237,.06);">
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--yellow2);margin-bottom:12px;letter-spacing:1px;">MISSION BRIEFING</div>
+        <div style="font-size:10px;line-height:2.2;color:var(--text2);">
+          📊 <b style="color:var(--text);">Analyse the frequency chart</b> — E is the most common letter in English<br>
+          🔤 <b style="color:var(--text);">Drag letters from the bank</b> and drop them onto cipher symbols<br>
+          🔍 Find the hidden <b style="color:#d4aaff;">FLAG{...}</b> pattern inside the ciphertext<br>
+          💡 Use the <b style="color:var(--yellow2);">HINT</b> button if you get stuck — 3 available<br>
+          ⏱ Decode before time runs out!
+        </div>
+      </div>
+      <div class="ov-btns">
+        <button class="ov-btn primary" onclick="startGame()" style="background:linear-gradient(135deg,#7c3aed,#9b5de5);color:#fff;box-shadow:0 0 20px rgba(124,58,237,.5);">▶ CRACK THE VAULT</button>
+        <a href="hub.html" class="ov-btn secondary">◄ HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="overlay" id="winOv" style="display:none">
+  <div class="ov-win">
+    <div class="ov-tb"><div class="ov-dot" style="background:#28c840;"></div><span style="margin-left:10px;font-size:10px;color:var(--green);">CIPHER FULLY DECODED — ACCESS GRANTED</span></div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:42px;margin-bottom:12px;">🏆</div>
+      <div class="ov-title" style="color:var(--green);">VAULT<br>CRACKED!</div>
+      <div class="ov-sub">Outstanding cryptanalysis, Agent.<br><span style="color:var(--green);">The substitution cipher has been broken.</span></div>
+      <div class="ctf-box">
+        <div class="ctf-lbl">🚩 CTF FLAG CAPTURED</div>
+        <div class="ctf-flag" id="winFlag">Loading...</div>
+      </div>
+      <div class="sgrid" id="winStats"></div>
+      <div class="ov-btns">
+        <button class="ov-btn primary" onclick="restartGame()">⟳ PLAY AGAIN</button>
+        <a href="hub.html" class="ov-btn secondary">🏠 HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAIL OVERLAY -->
+<div class="overlay" id="failOv" style="display:none">
+  <div class="ov-win">
+    <div class="ov-tb"><div class="ov-dot" style="background:#ff5f57;"></div><span style="margin-left:10px;font-size:10px;color:var(--red2);">TIME EXPIRED — ENCRYPTION HOLDS</span></div>
+    <div class="ov-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:12px;">💀</div>
+      <div class="ov-title" style="color:var(--red2);">TIME'S UP!</div>
+      <div class="ov-sub">The cipher held its secrets.<br><span style="color:var(--red2);">Transmission remains encrypted.</span></div>
+      <div style="background:var(--bg3);border:1px solid rgba(255,64,96,.3);padding:12px;margin:12px 0;font-size:10px;color:var(--text2);line-height:2.2;">Keep practising frequency analysis — E is the most common letter in English. Study the bar chart carefully next time!</div>
+      <div class="ov-btns">
+        <button class="ov-btn danger" onclick="restartGame()">⟳ RETRY</button>
+        <a href="hub.html" class="ov-btn secondary">◄ HUB</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+<!-- Drag ghost element -->
+<div id="dragGhost"></div>
+
+<!-- ═══ APP UI ═══ -->
+<div id="appUI" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;">
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="tb-logo"><span>🔐</span>CRYPTIC VAULT</div>
+    <div class="tb-menu">
+      <div class="tb-mi">File</div>
+      <div class="tb-mi">View</div>
+      <div class="tb-mi">Cipher</div>
+      <div class="tb-mi">Analysis</div>
+    </div>
+    <div class="tb-right">
+      <div class="timer-wrap">
+        <div class="timer-lbl">TIME REMAINING</div>
+        <div class="timer" id="timerEl">05:00</div>
+      </div>
+      <a href="hub.html" class="tbback">◄ HUB</a>
+    </div>
+  </div>
+
+  <!-- Mission strip -->
+  <div class="mission-strip">
+    <div class="mission-icon">🎯</div>
+    <div class="mission-text">
+      <b>MISSION:</b> Break the <span class="clue">substitution cipher</span> — map each symbol to its plaintext letter. Find the hidden <span class="clue">FLAG{...}</span> to complete the mission.
+    </div>
+    <div class="mission-progress">
+      <span>Decoded: <span id="progLabel" style="color:var(--purple);">0%</span></span>
+      <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Toolstrip -->
+  <div class="toolstrip">
+    <button class="btn-t btn-hint" onclick="giveHint()">💡 HINT <span id="hintCount" style="opacity:.6;">(3 left)</span></button>
+    <div class="tsep"></div>
+    <button class="btn-t" onclick="clearAllMappings()">✕ Clear All</button>
+    <div class="tsep"></div>
+    <span style="font-size:9px;color:var(--text3);padding:3px 6px;">Drag letters onto symbols • or click a symbol then a letter</span>
+  </div>
+
+  <!-- Workspace -->
+  <div class="workspace" id="workspace">
+
+    <!-- Cipher Text Panel -->
+    <div class="panel-cipher">
+      <div class="panel-title">
+        <div class="panel-dot" style="background:var(--cyan);"></div>
+        Intercepted Ciphertext
+        <span style="margin-left:auto;font-size:8px;color:var(--text3);">Click a symbol to select · Drag plaintext letters onto symbols</span>
+      </div>
+      <div class="cipher-scroll">
+        <div class="cipher-text" id="cipherText"></div>
+      </div>
+    </div>
+
+    <!-- Frequency Chart Panel (right column, full height) -->
+    <div class="panel-freq">
+      <div class="panel-title">
+        <div class="panel-dot" style="background:var(--yellow2);"></div>
+        Symbol Frequency
+        <span style="margin-left:auto;font-size:8px;color:var(--text3);">Click to highlight</span>
+      </div>
+      <div class="freq-scroll" id="freqChart"></div>
+    </div>
+
+    <!-- Letter Mapping Panel (bottom left) -->
+    <div class="panel-mapping">
+      <div class="panel-title" style="flex-shrink:0;border-bottom:1px solid var(--border2);padding:6px 12px;background:var(--bg3);">
+        <div class="panel-dot" style="background:var(--purple);"></div>
+        Letter Mapping
+        <span style="margin-left:auto;font-size:8px;color:var(--text3);">Drag from bank below → drop on cipher symbol above, or drop in a slot here</span>
+      </div>
+      <!-- Letter bank (draggable letters) -->
+      <div class="letter-bank" id="letterBank"></div>
+      <!-- Mapping grid -->
+      <div class="mapping-area">
+        <div class="map-grid" id="mapGrid"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div>Symbols: <span class="sb-val" id="sbSymbols">0</span></div>
+    <div>Mapped: <span class="sb-val" id="sbMapped">0</span></div>
+    <div>Correct: <span class="sb-val" id="sbCorrect">0</span></div>
+    <div>Hints Used: <span class="sb-val" id="sbHints">0</span></div>
+    <div class="sb-alert" id="alertEl" style="display:none">⚠ CIPHER ACTIVE</div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+//  CIPHER DATA — randomised each game
+// ═══════════════════════════════════════════════════════════
+
+const PLAINTEXT_POOL = [
+  `IN THE WORLD OF CYBERSECURITY, ENCRYPTION IS YOUR FIRST LINE OF DEFENSE. A SUBSTITUTION CIPHER REPLACES EACH LETTER WITH ANOTHER. TO CRACK IT, ANALYSTS STUDY LETTER FREQUENCY. IN ENGLISH, THE LETTER E APPEARS MOST OFTEN, FOLLOWED BY T, A, O, AND N. SKILLED CRYPTANALYSTS CAN DECODE MOST CIPHERS WITHIN MINUTES. THE HIDDEN FLAG IS FLAG{CRACK_TH3_C0D3} — WELL DONE IF YOU FOUND IT.`,
+  `NETWORK SECURITY PROTECTS YOUR DATA FROM UNWANTED INTRUSIONS AND ATTACKS. FIREWALLS BLOCK MALICIOUS TRAFFIC BEFORE IT REACHES YOUR SYSTEM. ENCRYPTION SCRAMBLES INFORMATION SO ONLY AUTHORISED PARTIES CAN READ IT. STRONG PASSWORDS AND TWO FACTOR AUTHENTICATION ARE ESSENTIAL DEFENSES. ALWAYS KEEP YOUR SOFTWARE UPDATED TO PATCH KNOWN VULNERABILITIES. THE FLAG YOU SEEK IS FLAG{CRACK_TH3_C0D3} — CONGRATULATIONS ON BREAKING THE CIPHER.`,
+  `CRYPTOGRAPHY IS THE SCIENCE OF HIDING INFORMATION USING MATHEMATICAL TECHNIQUES. THE CAESAR CIPHER SHIFTS EACH LETTER BY A FIXED NUMBER OF POSITIONS. MORE COMPLEX SYSTEMS USE KEYS THAT ARE NEARLY IMPOSSIBLE TO GUESS. FREQUENCY ANALYSIS EXPLOITS THE NATURAL DISTRIBUTION OF LETTERS IN A LANGUAGE. THE MOST COMMON LETTERS IN ENGLISH ARE E, T, A, O, I, AND N. YOUR REWARD IS FLAG{CRACK_TH3_C0D3} — EXCELLENT WORK, CRYPTANALYST.`,
+  `SOCIAL ENGINEERING TRICKS PEOPLE INTO REVEALING SENSITIVE INFORMATION. PHISHING EMAILS OFTEN IMPERSONATE TRUSTED ORGANISATIONS TO STEAL CREDENTIALS. ALWAYS VERIFY THE SENDER BEFORE CLICKING ANY LINK IN AN EMAIL. STRONG CYBER HYGIENE INCLUDES REGULAR PASSWORD CHANGES AND UNIQUE PASSPHRASES. DO NOT REUSE THE SAME PASSWORD ACROSS MULTIPLE SERVICES OR WEBSITES. DECODE THIS MESSAGE AND CLAIM FLAG{CRACK_TH3_C0D3} AS YOUR PRIZE.`,
+  `MALWARE IS MALICIOUS SOFTWARE DESIGNED TO DAMAGE OR GAIN UNAUTHORISED ACCESS. RANSOMWARE ENCRYPTS YOUR FILES AND DEMANDS PAYMENT FOR THE DECRYPTION KEY. ANTIVIRUS SOFTWARE SCANS FOR KNOWN THREATS AND REMOVES DANGEROUS CODE. BACKUPS ARE YOUR BEST DEFENCE AGAINST DATA LOSS FROM ANY ATTACK. NEVER OPEN ATTACHMENTS FROM UNKNOWN SENDERS OR SUSPICIOUS SOURCES. THE MISSION FLAG IS FLAG{CRACK_TH3_C0D3} — THE VAULT IS NOW OPEN.`,
+];
+
+// Generate a random substitution key (bijection A-Z → A-Z)
+function makeRandomKey(){
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  // Fisher-Yates shuffle of target alphabet
+  const shuffled = [...alpha];
+  for(let i=shuffled.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
+  }
+  // Ensure no fixed points (letter maps to itself)
+  for(let i=0;i<alpha.length;i++){
+    if(shuffled[i]===alpha[i]){
+      // swap with next (wrapping)
+      const j=(i+1)%alpha.length;
+      [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
+    }
+  }
+  const key={};
+  alpha.forEach((ch,i)=>{ key[ch]=shuffled[i]; });
+  return key;
+}
+
+// These are set fresh each startGame()
+let PLAINTEXT='', CIPHER_KEY={}, DECIPHER_KEY={}, CIPHERTEXT='';
+let FREQ={}, SORTED_SYMBOLS=[], MAX_FREQ=0;
+
+function initCipher(){
+  PLAINTEXT = PLAINTEXT_POOL[Math.floor(Math.random()*PLAINTEXT_POOL.length)];
+  CIPHER_KEY = makeRandomKey();
+  DECIPHER_KEY = {};
+  Object.entries(CIPHER_KEY).forEach(([p,c])=>{ DECIPHER_KEY[c]=p; });
+  CIPHERTEXT = PLAINTEXT.split('').map(ch=>(/[A-Z]/.test(ch)?CIPHER_KEY[ch]:ch)).join('');
+  FREQ={};
+  for(const ch of CIPHERTEXT){ if(/[A-Z]/.test(ch)) FREQ[ch]=(FREQ[ch]||0)+1; }
+  SORTED_SYMBOLS = Object.entries(FREQ).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  MAX_FREQ = Math.max(...Object.values(FREQ));
+}
+
+const ALL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+// ═══════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════
+let G = {
+  mapping:{},
+  hintsUsed:0,
+  hintsLeft:3,
+  timer:300,
+  timerIv:null,
+  started:false,
+  won:false,
+  startTime:0,
+  selectedCipher:null,
+  dragLetter:null,
+};
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER CIPHER TEXT
+// ═══════════════════════════════════════════════════════════
+function renderCipherText(){
+  const el = document.getElementById('cipherText');
+  el.innerHTML = '';
+
+  const buf = document.createDocumentFragment();
+
+  for(let i=0; i<CIPHERTEXT.length; i++){
+    const ch = CIPHERTEXT[i];
+    const plain = PLAINTEXT[i];
+
+    if(ch === ' ' || ch === '\n'){
+      const sp = document.createElement('span');
+      sp.className='c-char space';
+      sp.innerHTML='&nbsp;';
+      buf.appendChild(sp);
+    } else if(!/[A-Z]/.test(ch)){
+      const sp = document.createElement('span');
+      sp.className='c-char punct';
+      sp.textContent=ch;
+      buf.appendChild(sp);
+    } else {
+      const span = document.createElement('span');
+      span.className='c-char';
+      span.dataset.cipher=ch;
+      span.dataset.plain=plain;
+      span.dataset.idx=i;
+
+      const cipherChar = document.createElement('span');
+      cipherChar.className='cipher-char-vis';
+      cipherChar.textContent=ch;
+
+      const dec = document.createElement('span');
+      dec.className='c-decoded';
+      dec.id='dec-'+i;
+
+      span.appendChild(cipherChar);
+      span.appendChild(dec);
+
+      span.addEventListener('dragover', e=>{ e.preventDefault(); span.classList.add('drop-target'); });
+      span.addEventListener('dragleave', ()=>{ span.classList.remove('drop-target'); });
+      span.addEventListener('drop', e=>{ e.preventDefault(); span.classList.remove('drop-target'); handleDrop(ch, G.dragLetter); });
+      span.addEventListener('click', ()=>{ selectCipherChar(ch, span); });
+
+      buf.appendChild(span);
+    }
+  }
+  el.appendChild(buf);
+  updateDecodedChars();
+}
+
+function updateDecodedChars(){
+  document.querySelectorAll('.c-char[data-cipher]').forEach(span=>{
+    const cipher = span.dataset.cipher;
+    const plain = span.dataset.plain;
+    const mapped = G.mapping[cipher];
+    const dec = span.querySelector('.c-decoded');
+
+    if(mapped){
+      dec.textContent = mapped;
+      const isCorrect = mapped === plain;
+      dec.className = 'c-decoded' + (isCorrect?' correct-dec':'');
+      span.className = 'c-char ' + (isCorrect?'correct':'mapped');
+    } else {
+      dec.textContent = '';
+      span.className = 'c-char';
+    }
+
+    // highlight selected
+    if(G.selectedCipher === cipher) span.classList.add('selected-cipher');
+    else span.classList.remove('selected-cipher');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FREQUENCY CHART
+// ═══════════════════════════════════════════════════════════
+function renderFreqChart(){
+  const el = document.getElementById('freqChart');
+  el.innerHTML='';
+  SORTED_SYMBOLS.forEach(sym=>{
+    const cnt = FREQ[sym];
+    const pct = (cnt/MAX_FREQ)*100;
+    const mapped = G.mapping[sym];
+    const isCorrect = mapped && mapped===DECIPHER_KEY[sym];
+
+    const row = document.createElement('div');
+    row.className='freq-bar-wrap' + (G.selectedCipher===sym?' selected':'');
+    row.id='freq-'+sym;
+    row.addEventListener('click',()=>{ selectCipherChar(sym, null); });
+
+    const fillClass = 'freq-bar-fill' + (mapped?' mapped':'');
+
+    row.innerHTML=`
+      <span class="freq-symbol">${sym}</span>
+      <div class="freq-bar-bg"><div class="${fillClass}" style="width:${pct}%"></div></div>
+      <span class="freq-count">${cnt}</span>
+      <span class="freq-decoded ${isCorrect?'correct-fc':''}">${mapped||''}</span>
+    `;
+    el.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAPPING GRID
+// ═══════════════════════════════════════════════════════════
+function renderMapGrid(){
+  const el = document.getElementById('mapGrid');
+  el.innerHTML='';
+  SORTED_SYMBOLS.forEach(sym=>{
+    const mapped = G.mapping[sym];
+    const isCorrect = mapped && mapped===DECIPHER_KEY[sym];
+
+    const cell = document.createElement('div');
+    cell.className='map-cell' + (isCorrect?' cell-correct':'');
+    cell.id='mapcell-'+sym;
+
+    const dropSlot = document.createElement('div');
+    dropSlot.className='cell-drop' + (mapped?' has-letter':'') + (isCorrect?' correct-letter':'');
+    dropSlot.textContent = mapped||'';
+
+    dropSlot.addEventListener('dragover',e=>{ e.preventDefault(); dropSlot.classList.add('drag-over'); });
+    dropSlot.addEventListener('dragleave',()=>{ dropSlot.classList.remove('drag-over'); });
+    dropSlot.addEventListener('drop',e=>{ e.preventDefault(); dropSlot.classList.remove('drag-over'); handleDrop(sym, G.dragLetter); });
+    dropSlot.addEventListener('click',()=>{ selectCipherChar(sym, null); });
+
+    const clrBtn = document.createElement('span');
+    clrBtn.className='cell-clr';
+    clrBtn.textContent='✕';
+    clrBtn.title='Clear mapping';
+    clrBtn.addEventListener('click',e=>{ e.stopPropagation(); clearMapping(sym); });
+
+    cell.innerHTML=`<span class="cell-sym">${sym}</span><span class="cell-arrow">→</span>`;
+    cell.appendChild(dropSlot);
+    cell.appendChild(clrBtn);
+    el.appendChild(cell);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LETTER BANK
+// ═══════════════════════════════════════════════════════════
+function renderLetterBank(){
+  const el = document.getElementById('letterBank');
+  el.innerHTML='';
+  // which plain letters are used in current mappings
+  const usedLetters = new Set(Object.values(G.mapping));
+
+  ALL_LETTERS.forEach(letter=>{
+    const tile = document.createElement('div');
+    tile.className='letter-tile' + (usedLetters.has(letter)?' used':'');
+    tile.textContent=letter;
+    tile.draggable=true;
+    tile.dataset.letter=letter;
+
+    tile.addEventListener('dragstart',e=>{
+      G.dragLetter=letter;
+      tile.classList.add('dragging');
+      e.dataTransfer.setData('text/plain',letter);
+      e.dataTransfer.effectAllowed='copy';
+      // use a blank image for default ghost (we use custom ghost)
+      const ghost = document.getElementById('dragGhost');
+      ghost.textContent=letter;
+      ghost.style.opacity='1';
+      e.dataTransfer.setDragImage(ghost, 14, 14);
+    });
+    tile.addEventListener('dragend',()=>{
+      tile.classList.remove('dragging');
+      G.dragLetter=null;
+      document.getElementById('dragGhost').style.opacity='0';
+    });
+
+    // click-to-assign when a cipher char is selected
+    tile.addEventListener('click',()=>{
+      if(G.selectedCipher){
+        handleDrop(G.selectedCipher, letter);
+      }
+    });
+
+    el.appendChild(tile);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INTERACTION
+// ═══════════════════════════════════════════════════════════
+function selectCipherChar(cipher, spanEl){
+  G.selectedCipher = (G.selectedCipher===cipher) ? null : cipher;
+  // visual feedback on cipher text
+  document.querySelectorAll('.c-char').forEach(s=>s.classList.remove('selected-cipher'));
+  if(G.selectedCipher){
+    document.querySelectorAll(`.c-char[data-cipher="${cipher}"]`).forEach(s=>s.classList.add('selected-cipher'));
+  }
+  // highlight freq row
+  document.querySelectorAll('.freq-bar-wrap').forEach(r=>r.classList.toggle('selected',r.id==='freq-'+G.selectedCipher));
+}
+
+function handleDrop(cipherSym, plainLetter){
+  if(!cipherSym||!plainLetter) return;
+
+  // if this plain letter was already used for another cipher sym, clear that
+  const prev = Object.entries(G.mapping).find(([k,v])=>v===plainLetter&&k!==cipherSym);
+  if(prev) delete G.mapping[prev[0]];
+
+  G.mapping[cipherSym] = plainLetter;
+  G.selectedCipher = null;
+
+  refreshAll();
+  checkWin();
+}
+
+function clearMapping(sym){
+  delete G.mapping[sym];
+  refreshAll();
+}
+
+function clearAllMappings(){
+  G.mapping={};
+  refreshAll();
+  showToast('All mappings cleared.');
+}
+
+function refreshAll(){
+  updateDecodedChars();
+  renderFreqChart();
+  renderMapGrid();
+  renderLetterBank();
+  updateStatusBar();
+  updateProgress();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PROGRESS & STATUS
+// ═══════════════════════════════════════════════════════════
+function countCorrect(){
+  return Object.entries(G.mapping).filter(([k,v])=>DECIPHER_KEY[k]===v).length;
+}
+
+function updateProgress(){
+  const total = SORTED_SYMBOLS.length;
+  const correct = countCorrect();
+  const pct = Math.round((correct/total)*100);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progLabel').textContent=pct+'%';
+}
+
+function updateStatusBar(){
+  const total = SORTED_SYMBOLS.length;
+  const mapped = Object.keys(G.mapping).length;
+  const correct = countCorrect();
+  document.getElementById('sbSymbols').textContent=total;
+  document.getElementById('sbMapped').textContent=mapped;
+  document.getElementById('sbCorrect').textContent=correct;
+  document.getElementById('sbHints').textContent=G.hintsUsed;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WIN CHECK
+// ═══════════════════════════════════════════════════════════
+function checkWin(){
+  // Win when all cipher letters that appear in the FLAG portion are correctly mapped
+  // Actually win when the flag section is fully decoded correctly
+  // Find all unique cipher letters used in FLAG region
+  const flagStart = PLAINTEXT.indexOf('FLAG{');
+  const flagEnd = PLAINTEXT.indexOf('}', flagStart) + 1;
+  const flagCipher = CIPHERTEXT.slice(flagStart, flagEnd);
+  const flagLetters = [...new Set(flagCipher.split('').filter(c=>/[A-Z]/.test(c)))];
+
+  const flagDecoded = flagLetters.every(c => G.mapping[c] === DECIPHER_KEY[c]);
+
+  if(flagDecoded){
+    winGame();
+    return;
+  }
+
+  // Also win if ALL symbols are correctly mapped
+  const allCorrect = SORTED_SYMBOLS.every(s=>G.mapping[s]===DECIPHER_KEY[s]);
+  if(allCorrect) winGame();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HINT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+// Returns all cipher symbols that are not yet correctly mapped
+function getUnsolvedSymbols(){
+  return SORTED_SYMBOLS.filter(s => G.mapping[s] !== DECIPHER_KEY[s]);
+}
+
+// Returns unsolved symbols that are inside the FLAG{...} region
+function getUnsolvedFlagSymbols(){
+  const flagStart = PLAINTEXT.indexOf('FLAG{');
+  const flagEnd   = PLAINTEXT.indexOf('}', flagStart) + 1;
+  const flagCipher = CIPHERTEXT.slice(flagStart, flagEnd);
+  const flagSet = [...new Set(flagCipher.split('').filter(c=>/[A-Z]/.test(c)))];
+  return flagSet.filter(s => G.mapping[s] !== DECIPHER_KEY[s]);
+}
+
+function applyHint(sym, plain, msg){
+  // If the plain letter was wrongly assigned elsewhere, clear that first
+  const prev = Object.entries(G.mapping).find(([k,v]) => v===plain && k!==sym);
+  if(prev) delete G.mapping[prev[0]];
+  G.mapping[sym] = plain;
+  refreshAll();
+  showToast('💡 '+msg, true);
+  checkWin();
+}
+
+function giveHint(){
+  if(G.hintsLeft <= 0){ showToast('No hints remaining!'); return; }
+
+  const unsolved = getUnsolvedSymbols();
+  if(unsolved.length === 0){ showToast('Everything is already solved!', true); return; }
+
+  let sym, plain, msg;
+
+  if(G.hintsUsed === 0){
+    // Hint 1: nudge toward the most frequent unsolved symbol with a frequency tip
+    // (never the most frequent if already correct — always pick from unsolved)
+    sym   = unsolved[0]; // unsolved is already sorted by frequency
+    plain = DECIPHER_KEY[sym];
+    const rank = SORTED_SYMBOLS.indexOf(sym) + 1;
+    const alreadyWrong = G.mapping[sym] && G.mapping[sym] !== plain;
+    msg = alreadyWrong
+      ? `Your mapping for '${sym}' is wrong. It's the #${rank} most frequent symbol — think about common English letters.`
+      : `'${sym}' is the #${rank} most frequent cipher symbol. In English, the top letters are E, T, A, O, I, N. It maps to '${plain}'.`;
+
+  } else if(G.hintsUsed === 1){
+    // Hint 2: prioritise a wrongly-mapped symbol so the player fixes a mistake
+    const wronglyMapped = unsolved.filter(s => G.mapping[s] && G.mapping[s] !== DECIPHER_KEY[s]);
+    if(wronglyMapped.length > 0){
+      sym   = wronglyMapped[0];
+      plain = DECIPHER_KEY[sym];
+      msg   = `'${sym}' is currently mapped to '${G.mapping[sym]}' — that's incorrect. It should be '${plain}'.`;
+    } else {
+      // All unsolved are simply unmapped — reveal one from the middle of the frequency list
+      const mid = Math.floor(unsolved.length / 2);
+      sym   = unsolved[mid];
+      plain = DECIPHER_KEY[sym];
+      msg   = `Still working? '${sym}' deciphers to '${plain}'.`;
+    }
+
+  } else {
+    // Hint 3+: focus on the FLAG region first; fall back to any unsolved symbol
+    const unsolvedFlag = getUnsolvedFlagSymbols();
+    if(unsolvedFlag.length > 0){
+      sym   = unsolvedFlag[0];
+      plain = DECIPHER_KEY[sym];
+      const alreadyWrong = G.mapping[sym] && G.mapping[sym] !== plain;
+      msg   = alreadyWrong
+        ? `Inside the FLAG region, '${sym}' is mapped wrong. The correct letter is '${plain}'.`
+        : `FLAG region hint: cipher symbol '${sym}' → '${plain}'.`;
+    } else {
+      // Flag is solved — help with whatever is still open
+      sym   = unsolved[0];
+      plain = DECIPHER_KEY[sym];
+      msg   = `'${sym}' → '${plain}'. Keep going!`;
+    }
+  }
+
+  applyHint(sym, plain, msg);
+  G.hintsUsed++;
+  G.hintsLeft--;
+  document.getElementById('hintCount').textContent=`(${G.hintsLeft} left)`;
+  updateStatusBar();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TIMER
+// ═══════════════════════════════════════════════════════════
+function startTimer(){
+  G.timer=300;
+  updTimer();
+  G.timerIv=setInterval(()=>{
+    G.timer--;
+    updTimer();
+    if(G.timer<=60) document.getElementById('timerEl').classList.add('urgent');
+    if(G.timer<=0){ clearInterval(G.timerIv); if(!G.won) failGame(); }
+  },1000);
+}
+
+function updTimer(){
+  const m=String(Math.floor(G.timer/60)).padStart(2,'0');
+  const s=String(G.timer%60).padStart(2,'0');
+  document.getElementById('timerEl').textContent=m+':'+s;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WIN / FAIL
+// ═══════════════════════════════════════════════════════════
+async function winGame(){
+  if(G.won) return;
+  G.won=true;
+  clearInterval(G.timerIv);
+
+  // Flash effect
+  const flash = document.createElement('div');
+  flash.className='win-flash';
+  document.body.appendChild(flash);
+  setTimeout(()=>flash.remove(),900);
+
+  const elapsed = Math.round((Date.now()-G.startTime)/1000);
+  document.getElementById('winStats').innerHTML=`
+    <div class="sblock"><div class="sval">${elapsed}s</div><div class="slbl">Time Taken</div></div>
+    <div class="sblock"><div class="sval">${G.hintsUsed}</div><div class="slbl">Hints Used</div></div>
+    <div class="sblock"><div class="sval">${countCorrect()}/${SORTED_SYMBOLS.length}</div><div class="slbl">Correct Maps</div></div>`;
+
+  // Fetch flag from server
+  const flagRes = await fetch('/api/flag/3', { credentials:'include' });
+  const flag = flagRes.ok ? (await flagRes.json()).flag : 'FLAG UNAVAILABLE';
+  // Submit flag to mark level complete
+  await fetch('/api/verify-flag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ level: 3, flag: flag })
+  });
+  document.getElementById('winFlag').textContent = 'COPY: ' + flag;
+
+  setTimeout(()=>{ document.getElementById('winOv').style.display='flex'; },600);
+}
+
+function failGame(){
+  clearInterval(G.timerIv);
+  document.getElementById('failOv').style.display='flex';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastT;
+function showToast(msg, success=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast'+(success?' success':'');
+  el.style.opacity='1';
+  el.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(20px)';},2800);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ADD SELECTED CIPHER STYLE
+// ═══════════════════════════════════════════════════════════
+const style = document.createElement('style');
+style.textContent=`
+.c-char.selected-cipher{background:rgba(0,229,255,0.12);outline:1px solid var(--cyan);border-radius:2px;}
+.c-char{position:relative;padding:0 2px;margin-bottom:22px;display:inline-block;}
+.c-char.space{margin-bottom:0;}
+`;
+document.head.appendChild(style);
+
+// ═══════════════════════════════════════════════════════════
+//  START GAME
+// ═══════════════════════════════════════════════════════════
+function startGame(){
+  initCipher();
+  G = {mapping:{},hintsUsed:0,hintsLeft:3,timer:300,timerIv:null,started:true,won:false,startTime:Date.now(),selectedCipher:null,dragLetter:null};
+
+  ['startOv','winOv','failOv'].forEach(id=>document.getElementById(id).style.display='none');
+  const app=document.getElementById('appUI');
+  app.style.display='flex';
+
+  document.getElementById('hintCount').textContent='(3 left)';
+  document.getElementById('timerEl').classList.remove('urgent');
+  document.getElementById('alertEl').style.display='block';
+
+  renderCipherText();
+  renderFreqChart();
+  renderMapGrid();
+  renderLetterBank();
+  updateStatusBar();
+  updateProgress();
+  startTimer();
+}
+
+function restartGame(){
+  ['winOv','failOv'].forEach(id=>document.getElementById(id).style.display='none');
+  startGame();
+}
+</script>
+</body>
+</html>
